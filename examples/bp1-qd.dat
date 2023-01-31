@@ -1,0 +1,50 @@
+# Input parameter file. 
+# Solves the SEAS benchmark problem BP1-QD:
+# https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf
+#
+# details of output data:
+# path to directory that stores output data
+pth = ./output/
+# write-out every "stride_space" grid points along fault
+stride_space = 1 
+# write-out every "stride_time" time steps
+stride_time = 5
+#
+# computational domain size
+# x-domain is (x1, x2) (km)
+x1 = 0
+x2 = 80
+# z-domain is (z1, z2) (km)
+z1 = 0
+z2 = 80
+#
+# number of grid points in each dimension 
+# make sure to resolve h* and l_b - should be written as integer.
+Nx = 128
+Nz = 128
+#
+# how many years to simulate
+sim_years = 30
+#
+# loading rate
+Vp = 1e-9
+#
+# elastcity parameters
+ρ = 2.670
+cs = 3.464
+σn = 50
+#
+# rate-and-state friction parameters
+RSamin = 0.01
+RSamax = 0.025
+RSb = 0.015
+RSDc = 0.016
+RSf0 = 0.6
+RSV0 = 1e-6
+RSVinit = 1e-9
+RSH1 = 15
+RSH2 = 18
+RSWf = 40
+#
+# SBP interior spatial order of accuracy
+SBPp   = 2
