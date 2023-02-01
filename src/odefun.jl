@@ -36,8 +36,8 @@ function odefun(dψV, ψδ, p, t)
   Lx = p.Lx
   Lz = p.Lz
 
-
-  @show t ./ 31556926
+  current_time = t ./ 31556926
+  print("TIME [YRS] = $(current_time).\n")
 
   ψ  = @view ψδ[        (1:δNp) ]
   δ  = ψδ[ δNp .+ (1:N+1) ]
