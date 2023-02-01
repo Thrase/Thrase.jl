@@ -1,7 +1,7 @@
 # Thrase
 
 
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://thrase.github.io/Thrase/dev/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://thrase.github.io/Thrase.jl/dev/)
 
 <img src="kobul.jpg" alt="">
 
@@ -29,7 +29,7 @@ Thrase is a GPU-enabled, high-order accurate SBP-SAT finite difference code on u
 - Coming soon!
 
 # Documentation: 
-<a href="https://thrase.github.io/Thrase/dev/"> More to come soon...
+<a href="https://thrase.github.io/Thrase.jl/dev/"> More to come soon...
 
 # How to cite: 
 - Erickson, B. A., Kozdon, J. E., and Harvey, T. (2022), <a href="https://link.springer.com/article/10.1007/s10915-022-01961-1">A non-stiff summation-by-parts finite difference method for the wave equation in second order form: Characteristic boundary conditions and nonlinear interfaces</a>, Journal of Scientific Computing, doi: 10.1007/s10915-022-01961-1. 
