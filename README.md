@@ -23,9 +23,9 @@ Thrase is a GPU-enabled, high-order accurate SBP-SAT finite difference code on u
 # Installation: 
 - Download the latest release of <a href="https://julialang.org">Julia</a>
 - Coming soon!: add the Thrase package: from the julia repl:
-
+```
 ] add Thrase
-
+```
 - Test the installation: from the julia repl, type ]test Thrase
 
 # Getting Started:
