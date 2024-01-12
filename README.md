@@ -33,7 +33,7 @@ Thrase is a GPU-enabled, high-order accurate SBP-SAT finite difference code on u
 ] test Thrase
 ```
 
-## From source:
+## From source (in your terminal):
 - Download the latest release of <a href="https://julialang.org">Julia</a>
 - Clone the repository
 ```
