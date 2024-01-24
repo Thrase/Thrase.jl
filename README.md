@@ -43,10 +43,13 @@ git clone https://github.com/Thrase/Thrase.jl.git
 ```
 cd Thrase.jl
 julia --project=.
+```
+- You will now see the julia prompt, enter the following two commands in Pkg mode:
+```
 ] activate .
 instantiate
 ```
-- Test the installation:
+- Test the installation from the julia prompt (backspace to exit Pkg mode):
 ```
 include("test/runtests.jl")
 ```
