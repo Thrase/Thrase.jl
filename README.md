@@ -43,18 +43,15 @@ git clone https://github.com/Thrase/Thrase.jl.git
 ```
 cd Thrase.jl
 julia --project=.
-```
-- You can now activate the project
-```
 ] activate .
 ```
 - Install any dependencies (only necessary the first time)
 ```
 ] instantiate
 ```
-- Test the installation
+- Test the installation 
 ```
-] test Thrase
+include("test/runtests.jl");
 ```
 
 # Getting Started:
