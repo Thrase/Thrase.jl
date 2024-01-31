@@ -1,13 +1,13 @@
 # Input Parameters
 
-In the example input file for benchmark problem 1 there are multiple parameters that can be updated to change the problem.
+In the example input file for benchmark problem 1 (Thrase.jl/examples/bp1-qd.dat) there are multiple parameters that can be updated to change the problem.
 They are desribed in the table below. 
 
-Additional information is provided link them if they have slightly different names in the paper: https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf
+Sometimes the benchmark description paper contains slightly different names than the input file, we indicate in the description in parantheses if this is the case: https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf
 
 | Input File Parameter | Units | Data Type | Description | 
 | :-------- | :--------: | :--------: | :-------- | 
-| pth | - | string | path to the direcotory that stores output data 
+| pth | - | string | path to the directory that stores output data 
 | stride_space | - | positive integer | write-out every "stride_space" grid points along fault
 | stride_time | - | positive integer | write-out every "stride_time" time steps
 | x1 | km | positive integer | x-domain is (x1, x2)
