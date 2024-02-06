@@ -2,8 +2,7 @@ const year_seconds = 31556926
 const sim_years = 1500
 global const ctr = Ref{Int64}(1) 
 
-using OrdinaryDiffEq
-using DiffEqCallbacks
+using DifferentialEquations
 using Printf
 
 using DelimitedFiles

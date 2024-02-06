@@ -4,8 +4,7 @@
 
 using Thrase
 using LinearAlgebra
-using OrdinaryDiffEq
-using DiffEqCallbacks
+using DifferentialEquations
 using DelimitedFiles
 
 
