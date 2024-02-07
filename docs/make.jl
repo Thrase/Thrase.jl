@@ -16,6 +16,8 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "Install and Quick Start" => "quickstart.md",
+        "Input Parameters" => "parameters.md",
     ],
 )
 
