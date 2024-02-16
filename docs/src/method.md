@@ -1,4 +1,4 @@
-## Numerical Method
+## Numerical Methods
 This page describes how we solve the benchmark problem 1 by using numerical methods.
 
 ### Computational Domain
@@ -20,4 +20,30 @@ We then restrict the z-axis of the computational domain as such:
 * The external forces along z<sub>2</sub> also equal 0 because it is far enough down to also be considered a "free surface"
 
 
-###
+### Governing Equations
+We now discuss the governing equations for our problem setup. 
+
+(1) We are solving a 2D poisson equation given by:
+```math
+0= \mu(\frac{\partial^2u}{\partial^2x}+\frac{\partial^2u}{\partial^2z})
+```
+
+(2) We consider the material displacement over time as u(x,z,t). The slow tectonic loading (input parameter plate rate = V<sub>p</sub>) at the far right boundary (x<sub>2</sub>) is given by:
+```math
+u(x=x_2, z, t) = \frac{V_pt}{2}
+```
+
+(3) The material displacement at the far left boundary (x<sub>1</sub>) is given by:
+```math
+u(x=x_1, z, t) = \delta(z,t)
+```
+
+(4) The "free surface" at z<sub>1</sub> is given by:
+```math
+\mu\frac{\partial u}{\partial z}(x, z = z_1, t) = 0
+```
+
+(5) Likewise, the "free surface" at z<sub>2</sub> is given by:
+```math
+\mu\frac{\partial u}{\partial z}(x, z = z_2, t) = 0
+```
