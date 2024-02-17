@@ -47,3 +47,40 @@ u(x=x_1, z, t) = \delta(z,t)
 ```math
 \mu\frac{\partial u}{\partial z}(x, z = z_2, t) = 0
 ```
+### Frictional Fault Boundary Condition Details
+
+TODO
+
+### Numerical Time-Stepping Method
+
+We illustrate our timestepping method using Forward Euler (from t<sup>n</sup> -> t<sup>n+1</sup> in one step). However, please note that in the code we use the TSit5() function which actually utilizes a Runge-Kutta method. The Runge-Kutta method employs the same steps as Forward Euler but calculates intermediate values between t<sup>n</sup> and t<sup>n+1</sup> to arrive at a more accurate solution for t<sup>n+1</sup>, thus it is more computationally intense. 
+
+Assuming we know everything at time t<sup>n</sup> we take the following steps to calculate values at t<sup>n+1</sup>:
+
+(1) Integrate $\delta, \psi$
+      TODO
+
+(2) Solve 
+```math
+0= \mu(\frac{\partial^2u}{\partial^2x}+\frac{\partial^2u}{\partial^2z})
+```
+with the following boundary conditions for t<sup>n+1</sup>:
+```math
+u(x=x_2, z, t^{n+1}) = \frac{V_pt^{n+1}}{2}
+```
+```math
+u(x=x_1, z, t^{n+1}) = \frac{\delta^{n+1}}{2}
+```
+```math
+\mu\frac{\partial u}{\partial z}(x, z = z_1, t^{n+1}) = 0
+```
+```math
+\mu\frac{\partial u}{\partial z}(x, z = z_2, t^{n+1}) = 0
+```
+TODO SBP-SAT
+
+(3) Compute $\tau^{n+1}$ TODO details
+
+(4) Solve for the new slip rate V<sup>n+1</sup> by imposing friciton (F). TODO details
+
+(5) Return to step 1 for timestep t<sup>n+2</sup>
