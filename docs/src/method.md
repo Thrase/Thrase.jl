@@ -1,7 +1,7 @@
-## Numerical Methods
+# Numerical Methods
 This page describes how we solve the benchmark problem 1 by using numerical methods.
 
-### Computational Domain
+## Computational Domain
 The first consideration to make is that we must convert the semi-infinite domain problem from the original description into a finite problem that we can compute.
 
 First, we assume a fixed y value, which is the plane in which displacement happens. 
@@ -20,7 +20,7 @@ We then restrict the z-axis of the computational domain as such:
 * The external forces along z<sub>2</sub> also equal 0 because it is far enough down to also be considered a "free surface"
 
 
-### Governing Equations
+## Governing Equations
 We now discuss the governing equations for our problem setup. 
 
 (1) We are solving a 2D poisson equation given by:
@@ -47,11 +47,11 @@ u(x=x_1, z, t) = \delta(z,t)
 ```math
 \mu\frac{\partial u}{\partial z}(x, z = z_2, t) = 0
 ```
-### Frictional Fault Boundary Condition Details
+## Frictional Fault Boundary Condition Details
 
 TODO
 
-### Numerical Time-Stepping Method
+## Numerical Time-Stepping Method
 
 We illustrate our timestepping method using Forward Euler (from t<sup>n</sup> -> t<sup>n+1</sup> in one step). However, please note that in the code we use the TSit5() function which actually utilizes a Runge-Kutta method. The Runge-Kutta method employs the same steps as Forward Euler but calculates intermediate values between t<sup>n</sup> and t<sup>n+1</sup> to arrive at a more accurate solution for t<sup>n+1</sup>, thus it is more computationally intense. 
 
@@ -77,10 +77,24 @@ u(x=x_1, z, t^{n+1}) = \frac{\delta^{n+1}}{2}
 ```math
 \mu\frac{\partial u}{\partial z}(x, z = z_2, t^{n+1}) = 0
 ```
-TODO SBP-SAT
+To solve we use the Summation-By-Parts Simultaneous Approximation Term (SBP-SAT) finite difference method.
+This means that we solve the linear system Au<sup>n+1</sup> = b<sup>n+1</sup> for u<sup>n+1</sup>. Where u<sup>n+1</sup> is equal to the displacement everywhere. In this step we obtain the answer for u(x,z,t<sup>n+1</sup>).
 
-(3) Compute $\tau^{n+1}$ TODO details
-
-(4) Solve for the new slip rate V<sup>n+1</sup> by imposing friciton (F). TODO details
+(3) Compute $\tau^{n+1}$, since 
+```math
+\tau^{n+1} = \mu\frac{\partial u^{n+1}}{\partial x}
+```
+We solve numerically at x=x1:
+```math
+\left.\mu\frac{\partial u^{n+1}}{\partial x}\right\vert_{x=x_1}
+```
+(4) Solve for the new slip rate V<sup>n+1</sup> by imposing friciton (F). Our nonlinear equation is given by the following where everything is known except for V^{n+1}:
+```math
+\tau^{n+1} -\eta V^{n+1} = F(V^{n+1}, \psi^{n+1}) 
+```
+We use Newton's method to solve for V^{n+1} with:
+```math
+\bar V = V(z,t)
+```
 
 (5) Return to step 1 for timestep t<sup>n+2</sup>
