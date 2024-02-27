@@ -49,6 +49,7 @@ u(x=x_1, z, t) = \delta(z,t)
 \mu\frac{\partial u}{\partial z}(x, z = z_2, t) = 0
 ```
 
+![](img/ThraseBoundaries.jpg)
 ## Converting $\theta$ into $\psi$
 In the benchmark description we denote the state variable as $\theta$, but for computation we prefer to use the equivalent (mathematically consistent) $\psi$ as the state variable. We do this because it ranges over a smaller order of magnitude and is thus quicker(?) to compute. We describe how we convert from $\theta$ into $\psi$ for computing this problem.
 
