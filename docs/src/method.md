@@ -19,6 +19,7 @@ We then restrict the z-axis of the computational domain as such:
 * The external forces along z<sub>1</sub> equal 0 because it is a "free surface" where external forces can be assumed to have no effect
 * The external forces along z<sub>2</sub> also equal 0 because it is far enough down to also be considered a "free surface"
 
+![](img/ThraseBP1.jpg)
 
 ## Governing Equations
 We now discuss the governing equations for our problem setup. 
