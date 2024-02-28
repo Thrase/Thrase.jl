@@ -1,5 +1,5 @@
 # Numerical Methods
-This page describes how we solve the benchmark problem 1 (BP1-QD) by using numerical methods.
+This page describes how we solve the benchmark problem 1 (BP1-QD) using numerical methods.
 
 ## Computational Domain
 The first consideration to make is that we must convert the semi-infinite domain problem from the original description into a finite problem that we can compute.
@@ -51,34 +51,32 @@ u(x=x_1, z, t) = \delta(z,t)
 
 ![](img/ThraseBoundaries.jpg)
 ## Converting $\theta$ into $\psi$
-In the benchmark description we denote the state variable as $\theta$, but for computation we prefer to use the equivalent (mathematically consistent) $\psi$ as the state variable. We do this because it ranges over a smaller order of magnitude and is thus quicker(?) to compute. We describe how we convert from $\theta$ into $\psi$ for computing this problem.
+In the benchmark description we denote the state variable as $\theta$, but for computation we prefer to use the equivalent (mathematically consistent) $\psi$ as the state variable. We do this because it limits the range over a smaller order of magnitude. We describe how we convert from $\theta$ into $\psi$ for computing this problem.
 
-Since (TODO: where did we get this from?)
-```math
-\theta = \frac{D_c}{V_0}exp[\frac{\psi-f_0}{b}]
-```
-We can solve for $\psi$ and obtain: 
-```math
-\psi = f_0 + b * ln(\frac{V_0\theta}{D_c})
-```
+From equation (7) in the benchmark description, we define $\psi$ as the numerator of the exponent fraction, so: 
 
-TODO: and then I get lost...and in the code we start with all zeros for $\psi\delta$ and I'm confused by that too.
+```math
+\psi = f_0 + b \ln(\frac{V_0\theta}{D_c})
+```
+Substituting this into our aging law for $\theta$ (equation 6 in the benchmark description) we get the following aging law for $\psi$:
+```math
+\frac{d\psi}{dt} = \frac{bV_0}{D_c} [e^{\frac{f_0-\psi}{b}}-\frac{V}{V_0}]
+```
 
 ## Frictional Fault Boundary Condition Details
-Now, using $\psi$ instead of $\theta$ we can define the frictional strength at the fault (x = x<sub>1</sub>) as:
-TODO (how did we establish this from the benchmark description? I can't understand the correlation)
+Now, using $\psi$ instead of $\theta$ we can define the frictional strength at the fault (x = x<sub>1</sub>) from equation 5 in the benchmark as:
+
 ```math
-\tau - \eta V = F(V,\psi)
+\tau = F(V,\psi)
 ```
-where $\tau$ is the fault shear stress...and $F(V,\psi)$ is the frictional strength, and also something abou the slip rate...:
+where $\tau$ is the fault shear stress...and $F(V,\psi)$ is the frictional strength:
+
 ```math
-\tau = \tau(z,t)
-```
-```math
-F(V,\psi) = \sigma_n * a * sinh^{-1}[\frac{V}{2V_0}e^{\psi/a}]
+F(V,\psi) = \sigma_n a \sinh^{-1}[\frac{V}{2V_0}e^{\psi/a}]
 ```
 
 ## Numerical Time-Stepping Method
+We formulate the governing equations as an Index-1 differential algebraic equation (DAE) where slip and state evolve in time and a non-linear equation for slip rate must be solved at each timestep.
 
 We illustrate our timestepping method using Forward Euler (from t<sup>n</sup> -> t<sup>n+1</sup> in one step). However, please note that in the code we use the TSit5() function which actually utilizes a Runge-Kutta method. The Runge-Kutta method employs the same steps as Forward Euler but calculates intermediate values between t<sup>n</sup> and t<sup>n+1</sup> to arrive at a more accurate solution for t<sup>n+1</sup>, thus it is more computationally intense. 
 
@@ -86,10 +84,10 @@ Assuming we know everything at time t<sup>n</sup> we take the following steps to
 
 (1) Integrate $\delta$ and $\psi$, 
 ```math
-\delta^{n+1} = \delta^n + dt * V^n 
+\delta^{n+1} = \delta^n + dt V^n 
 ```
 ```math
-\psi^{n+1} = \psi^n + dt * G(V^n, \psi^n)
+\psi^{n+1} = \psi^n + dt G(V^n, \psi^n)
 ```
 (2) Solve the poisson equation using the Summation-By-Parts Simultaneous Approximation Term (SBP-SAT) finite difference method.
 This means that we solve the linear system Au<sup>n+1</sup> = b<sup>n+1</sup> for u<sup>n+1</sup>. Where u<sup>n+1</sup> is equal to the displacement everywhere. In this step we obtain the answer for u(x,z,t<sup>n+1</sup>) by solving:
@@ -113,23 +111,15 @@ u(x=x_1, z, t^{n+1}) = \frac{\delta^{n+1}}{2}
 
 (3) Compute $\tau^{n+1}$, since:
 ```math
-\tau^{n+1} = \mu\frac{\partial u^{n+1}}{\partial x}
+\tau^{n+1} = \tau_0 + \left.\mu\frac{\partial u^{n+1}}{\partial x}\right\vert_{x=x_1} - \eta V 
 ```
-We solve numerically at x=x1:
+
+(4) Solve for the new slip rate V<sup>n+1</sup> by imposing friciton (F). Our nonlinear equation is given by the following where everything is known except for V<sup>n+1</sup>, we solve using Newton's method:
 ```math
-\left.\mu\frac{\partial u^{n+1}}{\partial x}\right\vert_{x=x_1}
+\tau^{n+1} = F(V^{n+1}, \psi^{n+1}) 
 ```
-(4) Solve for the new slip rate V<sup>n+1</sup> by imposing friciton (F). Our nonlinear equation is given by the following where everything is known except for V<sup>n+1</sup>:
-```math
-\tau^{n+1} -\eta V^{n+1} = F(V^{n+1}, \psi^{n+1}) 
-```
-We use Newton's method to solve for V<sup>n+1</sup> with: (TODO: Do we need this equation?)
-```math
-\bar V = V(z,t)
-```
+We see in the code that we solve this way for the new values of slip and state for the z grid points where the rate-and-state fault is applicable (to depth W<sub>f</sub>). For the values below that in the z-direction we simply apply the constant slip rate.
 
 (5) Return to step 1 for timestep t<sup>n+2</sup>
 
-## Other Considerations in the Code
 
-Here should we talk about $\delta\psi$ and the Index-1 DAE? Or work it in somewhere else?
