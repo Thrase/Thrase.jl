@@ -19,7 +19,7 @@ We then restrict the z-axis of the computational domain as such:
 * The external forces along z<sub>1</sub> equal 0 because it is a "free surface" where external forces can be assumed to have no effect
 * The external forces along z<sub>2</sub> also equal 0 because it is far enough down to also be considered a "free surface"
 
-![](img/BP_schematic_1.pdf)
+![](img/BP_schematic_1.jpg)
 
 ## Governing Equations
 We now discuss the governing equations for our problem setup. 
@@ -49,7 +49,7 @@ u(x=x_1, z, t) = \delta(z,t)
 \mu\frac{\partial u}{\partial z}(x, z = z_2, t) = 0
 ```
 
-![](img/BP_schematic_2.pdf)
+![](img/BP_schematic_2.jpg)
 ## Converting $\theta$ into $\psi$
 In the benchmark description we denote the state variable as $\theta$, but for computation we prefer to use the equivalent (mathematically consistent) $\psi$ as the state variable. We do this because it limits the range over a smaller order of magnitude. We describe how we convert from $\theta$ into $\psi$ for computing this problem.
 
