@@ -1,7 +1,7 @@
 # Installation: 
 
 ## As a julia registered package (recommended):
-- Download the latest release of <a href="https://julialang.org">Julia</a>
+- Download the latest release of [Julia](https://julialang.org)
 - Coming soon!: add the Thrase package: from the julia repl:
 ```
 ] add Thrase
@@ -12,7 +12,7 @@
 ```
 
 ## From source (in your terminal):
-- Download the latest release of <a href="https://julialang.org">Julia</a>
+- Download the latest release of [Julia](https://julialang.org)
 - Clone the repository
 ```
 git clone https://github.com/Thrase/Thrase.jl.git
@@ -33,7 +33,7 @@ include("test/runtests.jl");
 ```
 
 # Getting Started:
-To run the code for the <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf">first SEAS benchmark problem 
+To run the code for the first [SEAS benchmark problem](https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf)
 
 ```
 localARGS = ["examples/bp1-qd.dat"]
