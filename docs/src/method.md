@@ -17,10 +17,10 @@ As described in the benchmark description, the governing equations are
 
 (1) the 2D poisson equation given by:
 ```math
-0= \mu(\frac{\partial^2u}{\partialx^2}+\frac{\partial^2u}{\partialz^2}).
+0= \mu(\frac{\partial^2u}{\partial x^2}+\frac{\partial^2u}{\partial z^2}).
 ```
 
-(2) The material displacement is given by u(x,z,t). Slow tectonic loading (input parameter plate rate = V<sub>p</sub>) is imposed at the far right boundary (x<sub>2</sub>) is given by:
+(2) The material displacement is given by u(x,z,t). Slow tectonic loading (input parameter plate rate = $V_p$) is imposed at the far right boundary ($x_2$) is given by:
 ```math
 u(x=x_2, z, t) = \frac{V_pt}{2}
 ```
@@ -29,7 +29,7 @@ u(x=x_2, z, t) = \frac{V_pt}{2}
 ```math
 u(x=x_1, z, t) = \delta(z,t)
 ```
-where \delta(z, t) is the fault slip.
+where $\delta(z, t)$ is the fault slip.
 
 (4) The free surface at z = 0 is given by:
 ```math
@@ -73,9 +73,9 @@ F(V,\psi) = \sigma_n a \sinh^{-1}[\frac{V}{2V_0}e^{\psi/a}]
 ## Numerical Time-Stepping Method
 We formulate the governing equations as an Index-1 differential algebraic equation (DAE) where slip and state evolve in time and a nonlinear equation for slip rate must be solved at each timestep.
 
-We illustrate our timestepping method using Forward Euler (from t<sup>n</sup> -> t<sup>n+1</sup> in one step). However, please note that in the code we use Julia's TSit5() function (a 4/5-order adaptive Runge-Kutta method). 
+We illustrate our timestepping method using Forward Euler (from $t^n$ -> $t^{n+1}$ in one step). However, please note that in the code we use Julia's TSit5() function (a 4/5-order adaptive Runge-Kutta method). 
 
-Assuming we know all fields at time t<sup>n</sup> we take the following steps to calculate values at t<sup>n+1</sup>:
+Assuming we know all fields at time $t^n$ we take the following steps to calculate values at $t^{n+1}$:
 
 (1) Integrate $\delta$ and $\psi$, 
 ```math
@@ -85,7 +85,7 @@ Assuming we know all fields at time t<sup>n</sup> we take the following steps to
 \psi^{n+1} = \psi^n + dt G(V^n, \psi^n)
 ```
 (2) Solve the poisson equation using the Summation-By-Parts Simultaneous Approximation Term (SBP-SAT) finite difference method.
-This amounts to solving the linear system Au<sup>n+1</sup> = b<sup>n+1</sup> for u<sup>n+1</sup>. Where u<sup>n+1</sup> is the displacement within the entire domain at time t<sup>n+1</sup>. In this step we assume the following boundary conditions at t<sup>n+1</sup>:
+This amounts to solving the linear system $Au^{n+1} = b^{n+1}$ for $u^{n+1}$. Where $u^{n+1}$ is the displacement within the entire domain at time $t^{n+1}$. In this step we assume the following boundary conditions at $t^{n+1}$:
 ```math
 u(x=L_x, z, t^{n+1}) = \frac{V_pt^{n+1}}{2}
 ```
@@ -104,7 +104,7 @@ u(x=0, z, t^{n+1}) = \frac{\delta^{n+1}}{2}
 \Delta\tau^{n+1} = \left.\mu\frac{\partial u^{n+1}}{\partial x}\right\vert_{x=0}
 ```
 
-(4) and then solve for the new slip rate V<sup>n+1</sup> by imposing friction. This yields a nonlinear equation (where everything is known except for V<sup>n+1</sup>):
+(4) and then solve for the new slip rate $V^{n+1}$ by imposing friction. This yields a nonlinear equation (where everything is known except for $V^{n+1}$):
 ```math
 \tau_0 + \Delta\tau^{n+1} - \eta V^{n+1} = F(V^{n+1}, \psi^{n+1}) 
 ```
@@ -112,6 +112,6 @@ which is solved usign a bracketed Newton method (i.e. safe-guarded with bisectio
 
 For fault depths below the rate-and-state region, $V^{n+1}$ is set to the plate rate $V_p$ as specified in the benchmark. 
 
-(5) Return to step 1 for timestep t<sup>n+2</sup>
+(5) Return to step 1 for timestep $t^{n+1}$
 
 
