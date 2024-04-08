@@ -11,20 +11,20 @@ stride_space = 1
 stride_time = 5
 #
 # computational domain size
-# x-domain is (x1, x2) (km)
-x1 = 0
-x2 = 80
-# z-domain is (z1, z2) (km)
-z1 = 0
-z2 = 80
+# x-domain is (Lx1, Lx2) (km)
+Lx1 = 0
+Lx2 = 80
+# z-domain is (Lz1, Lz2) (km)
+Lz1 = 0
+Lz2 = 80
 #
 # number of grid points in each dimension 
-# make sure to resolve h* and l_b - should be written as integer.
+# make sure to resolve h* and l_b; should be written as integer.
 Nx = 128
 Nz = 128
 #
 # how many years to simulate
-sim_years = 15
+sim_years = 500
 #
 # loading rate
 Vp = 1e-9

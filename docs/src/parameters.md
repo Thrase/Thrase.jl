@@ -3,7 +3,7 @@
 In the example input file for benchmark problem 1 (Thrase.jl/examples/bp1-qd.dat) there are multiple parameters that can be updated to change the problem.
 They are desribed in the table below. 
 
-Sometimes the benchmark description paper contains slightly different names than the input file, we indicate in the description in parantheses if this is the case: https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf
+Sometimes the [benchmark description paper](https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf) contains slightly different names than the input file, we indicate in the description in parantheses if this is the case.
 
 | Input File Parameter | Units | Data Type | Description | 
 | :-------- | :--------: | :--------: | :-------- | 
