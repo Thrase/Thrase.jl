@@ -61,8 +61,10 @@ To run the code for the <a href="https://strike.scec.org/cvws/seas/download/SEAS
 localARGS = ["examples/bp1-qd.dat"]
 include("examples/stripped_qd_driver.jl");
 
-OR 
+```
+To run the code for <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP6.pdf">BP6
 
+```
 localARGS = ["examples/bp6.dat"]
 include("examples/BP6_driver.jl");
 
