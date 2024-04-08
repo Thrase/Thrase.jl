@@ -1,0 +1,68 @@
+# Input parameter file. 
+# Solves the SEAS benchmark problem BP6:
+# https://strike.scec.org/cvws/seas/download/SEAS_BP6_Nov18.pdf
+#
+# details of output data:
+# path to directory that stores output data
+pth = ./output/
+# write-out every "stride_space" grid points along fault
+stride_space = 1 
+# write-out every "stride_time" time steps
+stride_time = 1
+#
+# computational domain size
+# x-domain is (Lx1, Lx2) (km)
+# solve one-sided problem; fault at x = Lx1
+Lx1 = 0   
+Lx2 = 40
+# z-domain is (Lz1, Lz2) (km)
+Lz1 = -40
+Lz2 = 40
+# dimensions in which constant grid-spacing is applied:
+Hx = 20
+Hz = 20 
+# number of grid points in each dimension 
+# make sure to resolve h* and l_b; should be written as integer.
+Nr = 500
+Ns = 1000
+#
+# Physical Domain: (x, z) in (0, Lx) x (-Lz, Lz)
+# desired grid spacing in [0, Hx] in physical domain (km)
+dx = .05
+#desired grid spacing in[-Hz, Hz] in physical domain (km)
+dz = .05  
+# length scales over which grid stretching occurs, should be larger than grid spacing in logical domain in order to resolve:
+el_r = 0.05  
+el_s = 0.05  
+# how many years to simulate
+sim_years = 2
+#
+# loading rate
+Vp = 1e-9   
+#
+# elastcity parameters
+ρ = 2.670   
+cs = 3.464  
+σn_0 = 50.0     
+#
+# rate-and-state friction parameters
+RSa = 0.007
+RSb = 0.005
+RSD_RS = 0.004
+RSf0 = 0.6
+RSV0 = 1e-6
+RSVinit = 1e-12
+RSLf = 20           
+τ_init = 29.2  
+q_0 = 1.25e-6 
+t_off = 8640000  
+α = 1e-7          
+β = 10         
+φ = 0.1        
+k = 1e-13      
+η_visc = 0.001
+# options: "aging" for aging law, "slip" for slip law (right now code only does aging law, need to manually change for slip law)
+#
+state_law = "aging"  
+# SBP interior spatial order of accuracy
+SBPp = 2
