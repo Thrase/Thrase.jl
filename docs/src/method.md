@@ -6,11 +6,11 @@ The first consideration to make is that we must convert the semi-infinite domain
 
 The anti-plane assumption means that fields depend only on the x and z values, creating a two dimensional problem.
 
-We restrict our domain to (x, z) in (0, L_x) x (0, L_z), with the fault at x = 0, and assume anti-symmetry for x in (-L_x, 0). 
+We restrict our domain to $(x, z)$ in $(0, L_x)$ x $(0, L_z)$, with the fault at x = 0, and assume anti-symmetry for x in $(-L_x, 0)$. 
 
-z = 0 refers to Earth's free surface, and at z = L_z we also assume a traction-free boundary. 
+$z = 0$ refers to Earth's free surface, and at $z = L_z$ we also assume a traction-free boundary. 
 
-<img src="img/BP_schematic_1.jpg" alt="drawing" width="600"/>
+<img src="img/BP_schematic_1.svg" alt="drawing" width="600"/>
 
 ## Governing Equations
 As described in the benchmark description, the governing equations are
@@ -41,7 +41,7 @@ where $\delta(z, t)$ is the fault slip.
 \mu\frac{\partial u}{\partial z}(x, z = L_z, t) = 0
 ```
 
-<img src="img/BP_schematic_2.jpg" alt="drawing" width="600"/>
+<img src="img/BP_schematic_2.svg" alt="drawing" width="600"/>
 
 ## Converting $\theta$ into $\psi$
 In the benchmark description the state variable is given in terms of $\theta$, but we prefer to use the equivalent (mathematically consistent) $\psi$ as the state variable, defined by
