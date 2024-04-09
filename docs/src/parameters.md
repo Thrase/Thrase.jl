@@ -19,7 +19,7 @@ Sometimes the [benchmark description paper](https://strike.scec.org/cvws/seas/do
 | Nz | - | Real <: Number | number of grid points in each dimension
 | sim_years | years | Real <: Number | how many years to simulate
 | Vp | m/s | Real <: Number | plate rate
-| ρ | kg/m<sup>3</sup> | Real <: Number | density
+| ρ | kg/$m^3$ | Real <: Number | density
 | cs | km/s | Real <: Number | shear wave speed
 | σn | MPa | Real <: Number | effective normal stress on fault
 | RSamin | - | Real <: Number | rate-and-state parameter (a<sub>0</sub>)
