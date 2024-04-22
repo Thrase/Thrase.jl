@@ -84,6 +84,11 @@ Note that the parameters set in the input file "examples/bp1-qd.dat" are slightl
 # License: 
 - Distributed under the MIT License. See LICENSE.txt for more information.
 
+# Contributing: 
+Thrase is an open-source project and welcomes:
+- contributions via forks and pull requests
+- questions, feature requests, or bug reports via issues
+
 # Contact:
 - Brittany A. Erickson (bae@uoregon.edu)
 
