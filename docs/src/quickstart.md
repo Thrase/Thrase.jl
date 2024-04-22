@@ -1,6 +1,6 @@
-# Installation: 
+# Installation 
 
-## As a julia registered package (recommended):
+## As a julia registered package (recommended)
 - Download the latest release of [Julia](https://julialang.org)
 - Coming soon!: add the Thrase package: from the julia repl:
 ```
@@ -11,7 +11,7 @@
 ] test Thrase
 ```
 
-## From source (in your terminal):
+## From source (in your terminal)
 - Download the latest release of [Julia](https://julialang.org)
 - Clone the repository
 ```
@@ -32,7 +32,7 @@ julia --project=.
 include("test/runtests.jl");
 ```
 
-# Getting Started:
+# Getting Started
 To run the code for the first [SEAS benchmark problem](https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf)
 
 ```
