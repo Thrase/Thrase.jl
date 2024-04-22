@@ -16,6 +16,9 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "Numerical Method" => "method.md",
+        "Install and Quick Start" => "quickstart.md",
+        "Input Parameters" => "parameters.md",
     ],
 )
 

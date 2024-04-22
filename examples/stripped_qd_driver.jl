@@ -4,8 +4,7 @@
 
 using Thrase
 using LinearAlgebra
-using OrdinaryDiffEq
-using DiffEqCallbacks
+using DifferentialEquations
 using DelimitedFiles
 
 
@@ -36,29 +35,30 @@ function main()
 
     Lx = xc[2]
     Lz = zc[2]
+
     # create operators
     (M̃, F, τ, H̃, HfI_FT) = get_operators(SBPp, Nx, Nz, μ; xc = xc, zc = zc)
-    #(M̃, F, τ, H̃, HfI_FT) = get_operators(SBPp, Nr, Ns, μ)
 
-    # factor with Cholesky
-    M = cholesky(Symmetric(M̃))
+    # factor matrix with Cholesky
+    A = cholesky(Symmetric(M̃))
 
-    # initialize vector g that stores boundary data
+    # initialize time and vector b that stores boundary data (linear system will be Au = b)
     t = 0
-    g = zeros((Nx+1) * (Nz+1))
+    b = zeros((Nx+1) * (Nz+1))
 
+    # initial slip vector
     δ = zeros(Nz+1)
     
-    bc_Dirichlet = (lf, x, z) -> (2-lf) .* (0 * x .+ 0 .* z) + (lf-1) .* (0 .* x .+ 0 .* z)
-    bc_Neumann   = (lf, x, z, nx, ny) -> zeros(size(x))
+    # fill in initial boundary data into b
+    bdry_vec_strip!(b, F, τ, x, z, δ ./ 2, (t .* Vp./2)*ones(size(z)), zeros(size(x)), Lx, Lz)
     
-    bdry_vec_mod!(g, F, τ, x, z, bc_Dirichlet, bc_Neumann, Lx, Lz)
-    
-    u = M \ g
+    u = A \ b # solve linear system with a backsolve to obtain initial displacement u(x, z, 0)
  
+    # Find z-index δNp corresponding to base of rate-and-state friction zone RSWf
     (mm, δNp) = findmin(abs.(RSWf .- z))
     @assert z[δNp] ≈ RSWf
  
+    # initialize change in shear stress due to quasi-static deformation
     Δτ = zeros(Nz+1)
 
     # Assemble fault variables/data
@@ -68,26 +68,29 @@ function main()
             min(1, max(0, (RSH1 - z[n])/(RSH1 - RSH2)))
     end
 
-
-    τz0 = σn * RSamax * asinh(RSVinit / (2 * RSV0) *
+    # Set pre-stress according to benchmark
+    τ0 = σn * RSamax * asinh(RSVinit / (2 * RSV0) *
                                     exp.((RSf0 + RSb * log.(RSV0 / RSVinit)) /
                                         RSamax)) + η * RSVinit
 
 
+    # Set initial state variable according to benchmark
     θ = (RSDc ./ RSV0) .* exp.((RSa ./ RSb) .* log.((2 .* RSV0 ./ RSVinit) .*
-        sinh.((τz0 .- η .* RSVinit) ./ (RSa .* σn))) .- RSf0 ./ RSb)
+        sinh.((τ0 .- η .* RSVinit) ./ (RSa .* σn))) .- RSf0 ./ RSb)
+
+    # Initialize psi version of state variable
+    ψ = RSf0 .+ RSb .* log.(RSV0 .* θ ./ RSDc)
 
 
-    ψ0 = RSf0 .+ RSb .* log.(RSV0 .* θ ./ RSDc)
+    # Set initial condition for index 1 DAE - this is a stacked vector of psi, followed by slip
+    ψδ = zeros(δNp + Nz + 1)  #because length(ψ) = δNp,  length(δ) = Nz+1
+    ψδ[1:δNp] .= ψ
+    ψδ[δNp+1:δNp + Nz + 1] .= δ
 
-
-    ψδ = zeros(δNp + Nz + 1)  #because length(ψ) = δNp,  length(δ) = N+1
-    ψδ[1:δNp] .= ψ0
-
-
+    # Set fault station locations (depths) specified in benchmark
     stations = [0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 25, 30, 35] # km
 
-    # Next part of code related to code output
+    # Function that finds the depth-index corresponding to a station location
     function find_station_index(stations, grid_points)
         numstations = length(stations)
         station_ind = zeros(numstations)
@@ -99,28 +102,28 @@ function main()
       end
       
     station_indices = find_station_index(stations, z)
-    station_strings = ["000", "025", "005", "075", "100", "125", "150", "175", "200", "250", "300", "350"] # "125" corresponds to 12.5 km down dip. 
+    station_strings = ["000", "025", "005", "075", "100", "125", "150", "175", "200", "250", "300", "350"] # "125" corresponds to 12.5 km down dip; these are necessary for writing to files
   
   
-    # Fault locations to record slip evolution output:
+    # Benchmark description also requests slip evolution output recorded at fault locations every ~stride_space spatial nodes:
     flt_loc = z[1:stride_space:δNp]  # physical stations (units of km)
     flt_loc_indices = find_station_index(flt_loc, z)
 
-    # set up parameters sent to right hand side
+    # set up parameters sent to the right hand side of the DAE:
     odeparam = (reject_step = [false],
                 Vp=Vp,
-                M = M,
+                A = A,
                 u=u,
                 Δτ = Δτ,
-                τf = τz0*ones(Nz+1),
-                g = g,
+                τf = τ0*ones(Nz+1),
+                b = b,
                 μshear=μshear,
                 RSa=RSa,
                 RSb=RSb,
                 σn=σn,
                 η=η,
                 RSV0=RSV0,
-                τz0=τz0,
+                τ0=τ0,
                 RSDc=RSDc,
                 RSf0=RSf0,
                 δNp = δNp,
@@ -135,16 +138,21 @@ function main()
                 save_stride_fields = stride_time # save every save_stride_fields time steps
                 )
 
-    #dψV = zeros(δNp + Nz + 1)
+    # Set time span over which to solve:
     tspan = (0, sim_years * year_seconds)
-    prob = ODEProblem(odefun, ψδ, tspan, odeparam)
+
+
+    # Set up ODE problem corresponding to DAE
+    prob = ODEProblem(odefun_stripped, ψδ, tspan, odeparam)
  
+    # Set call-back function so that files are written to after successful time steps only.
     cb_fun = SavingCallback((ψδ, t, i) -> write_to_file(pth, ψδ, t, i, z, flt_loc, flt_loc_indices,station_strings, station_indices, odeparam, "BP1_", 0.1 * year_seconds), SavedValues(Float64, Float64))
   
     # Make text files to store on-fault time series and slip data,
     # Also initialize with initial data:
-    create_text_files(pth, flt_loc, flt_loc_indices, stations, station_strings, station_indices, 0, RSVinit, δ, τz0, θ)
+    create_text_files(pth, flt_loc, flt_loc_indices, stations, station_strings, station_indices, 0, RSVinit, δ, τ0, θ)
 
+    # Solve DAE using Tsit5()
     sol = solve(prob, Tsit5(); dt=0.2,
              abstol = 1e-5, reltol = 1e-5, save_everystep=true, gamma = 0.2,
              internalnorm=(x, _)->norm(x, Inf), callback=cb_fun)

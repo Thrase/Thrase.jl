@@ -160,6 +160,32 @@ function get_operators(p, Nx, Nz, μ; xc = (-1, 1), zc = (-1, 1))
   return (M̃ , F, τ, H̃, HfI_FT)
 end
 
+function bdry_vec_strip!(g, F, τ, x, z, slip_data, remote_data, free_surface_data, Lx, Lz)
+
+    
+  g[:] .= 0
+
+  # fault (Dirichlet):
+  vf = slip_data
+  g[:] -= F[1] * vf
+
+  # FACE 2 (Dirichlet):
+  vf = remote_data
+  g[:] -= F[2] * vf
+
+  # FACE 3 (Neumann):
+  gN = free_surface_data
+  vf = gN  ./ diag(τ[3])
+  g[:] -= F[3] * vf
+
+  # FACE 4 (Neumann):
+  gN = free_surface_data
+  vf = gN  ./ diag(τ[4])
+  g[:] -= F[4] * vf 
+  
+
+end
+
 function bdry_vec_mod!(g, F, τ, x, z, bc_Dirichlet, bc_Neumann, Lx, Lz)
 
     
@@ -186,9 +212,9 @@ function bdry_vec_mod!(g, F, τ, x, z, bc_Dirichlet, bc_Neumann, Lx, Lz)
 
 end
 
-function computetraction_stripped(HfI_FT, τ, lf, u, δ)
-    HfI_FT = HfI_FT[lf]
-    τf = τ[lf]
+function computetraction_stripped(HfI_FT, τ, u, δ)
+    HfI_FT = HfI_FT[1]
+    τf = τ[1]
 
     return (HfI_FT * u + τf * (δ .- δ / 2)) 
   end
@@ -240,5 +266,5 @@ function computetraction_stripped(HfI_FT, τ, lf, u, δ)
     return (x, f, -maxiter)
   end
 
-  export get_operators, bdry_vec_mod!, computetraction_stripped
+  export get_operators, bdry_vec_mod!, bdry_vec_strip!, computetraction_stripped
   export rateandstate, newtbndv
