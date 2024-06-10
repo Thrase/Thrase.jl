@@ -75,7 +75,7 @@ include("examples/BP6/BP6_driver.jl");
 ```
 
 ### Benchmark Problem 5:
-To run the example code for the <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP5.pdf">fifth SEAS benchmark problem you will need GPU resources to solve in 3 dimensions, without a GPU it will be able to complete in a timely manner
+To run the example code for the <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP5.pdf">fifth SEAS benchmark problem</a> you will need GPU resources to solve in 3 dimensions, without a GPU it will be able to complete in a timely manner
 ```
 include("examples/BP5/BP5-QD.jl");
 ```
