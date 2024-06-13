@@ -98,14 +98,13 @@ function main()
         # folder already exists
     end
 
-    tspan = (0, sim_years * year_seconds)
+    tspan = (0, BP5_coeff.sim_years * year_seconds)
     prob = ODEProblem(odefun_BP5, ψδ, tspan, odeparam) 
 
     if !isfile(path_time * "restart_value.json")
         global ctr[] = 1
         create_text_files(path_time, station_strings, station_indices, δ, τb, θ, 0)
-        tspan = (0, sim_years * year_seconds)
-        # tspan = (0, sim_years * year_seconds)
+        tspan = (0, BP5_coeff.sim_years * year_seconds)
         prob = ODEProblem(odefun_BP5, ψδ, tspan, odeparam)
     else
         contents = read(path_time * "restart_values.json", String)
@@ -114,7 +113,7 @@ function main()
         δ_restart = json_data["δ"]
         t = json_data["t"]
         V_restart = json_data["V"]
-        tspan = (t, sim_years * year_seconds)
+        tspan = (t, BP5_coeff.sim_years * year_seconds)
         ψ .= ψ_restart
         δ .= δ_restart
         V .= V_restart
