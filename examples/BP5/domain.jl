@@ -1,10 +1,11 @@
 # This file specifies the computational domain
 using Dates
 include("../../src/helper.jl")
+include("../../src/Assembling_3D_matrices.jl")
 const year_seconds = 31556926
 #sim_years = 1800
 
-BP5_coeff = coefficients(read_params(localARGS[1]))
+BP5_coeff = coefficients(read_coeff_params(localARGS[1]))
 
 # calling parameterized constructor to set values for BP5
 # if BP5_coeff is not defined here, the BP5-QD.jl will 
@@ -34,8 +35,6 @@ BP5_coeff = coefficients(read_params(localARGS[1]))
 #     1800                    # sim_years
 # )
 
-
-include("../../src/Assembling_3D_matrices.jl")
 
 # The entire domain is 128 km by 128 km by 128 km
 Lx = Ly = Lz = 128
