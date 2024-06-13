@@ -23,7 +23,6 @@ include("examples/BP6/BP6_driver.jl");
 # Benchmark Problem 5 (GPU):
 To run the example code for the <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP5.pdf">fifth SEAS benchmark problem</a> you will need GPU resources to solve in 3 dimensions, without a GPU it will not be able to complete in a timely manner
 ```
-localARGS = ["examples/BP5/bp5.dat"]
 include("examples/BP5/BP5-QD.jl");
 ```
-The setup of the domains are done in "examples/BP5/domain.jl" and "examples/BP5/domain_256.jl" for the different problem sizes respectively. In addition to updating the .dat file, you may need to change values in the domain file if needing to configure the domain size differently.
+The setup of the domains and coefficients for the BP5 example solutions is done in "examples/BP5/domain.jl" and "examples/BP5/domain_256.jl" for the different problem sizes respectively. To change values from the default you only need to update the constructor values in these files (or any domain size variables in the file).

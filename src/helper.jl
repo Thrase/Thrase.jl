@@ -75,32 +75,7 @@ coefficients() = coefficients(
     1800                    # sim_years
 )
 
-# read coefficients from the input file
-function read_coeff_params(f_name)
-    f = open(f_name, "r")
-    tmp_params = []
-    while ! eof(f)
-        s = readline(f)
-        if s[1] != '#'
-            push!(tmp_params, split(s, '=')[2])
-            flush(stdout)
-        end
-    end
-    close(f)
-    
-    #(ρ, cs, ν, a0, amax, b0, σn, L, Vp, Vinit, V0, f0, hs, ht, 
-        # H, l, Wf, lf, w, Δz, sim_years) = read_coeff_params(localARGS[1])
-    
-    params = Vector{Any}(undef, 21)
-    
-    for i = 1:length(tmp_params)-1
-    params[i] = parse(Float64, tmp_params[i])
-    end
 
-    params[i+1] = parse(Int64, tmp_params[i+1])
-
-    return params
-end
 
 # initial state variable over the entire fault
 # x2 
