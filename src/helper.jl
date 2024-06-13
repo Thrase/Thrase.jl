@@ -47,7 +47,7 @@ struct coefficients
     lf      # length of rate-and-state fault        100 km
     w       # width of favorible nucleation zone    12 km
     Δz      # suggested cell size                   1000m
-    tf      # final simulation time                 1800 years
+    sim_years      # final simulation time                 1800 years
 end
 
 # default constructor
@@ -72,7 +72,7 @@ coefficients() = coefficients(
     100,                    # lf
     12,                     # w
     1000,                   # Δz in meter, 
-    1800                    # tf
+    1800                    # sim_years
 )
 
 # initial state variable over the entire fault

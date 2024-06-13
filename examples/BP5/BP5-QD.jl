@@ -1,12 +1,12 @@
 # loading helper functions for calculations
-include("helper.jl")
+include("../../src/helper.jl")
 
 domain_file = "domain.jl"
 include(domain_file)
 
 # loading odefun defined for ODEProblem
-include("utils_MG.jl")
-include("odefun_BP5.jl")
+include("../../src/utils_MG.jl")
+include("../../src/odefun_BP5.jl")
 
 
 CUDA.allowscalar(false)
@@ -99,14 +99,14 @@ function main()
     end
 
     tspan = (0, sim_years * year_seconds)
-    prob = ODEProblem(odefun, ψδ, tspan, odeparam) 
+    prob = ODEProblem(odefun_BP5, ψδ, tspan, odeparam) 
 
     if !isfile(path_time * "restart_value.json")
         global ctr[] = 1
         create_text_files(path_time, station_strings, station_indices, δ, τb, θ, 0)
         tspan = (0, sim_years * year_seconds)
         # tspan = (0, sim_years * year_seconds)
-        prob = ODEProblem(odefun, ψδ, tspan, odeparam)
+        prob = ODEProblem(odefun_BP5, ψδ, tspan, odeparam)
     else
         contents = read(path_time * "restart_values.json", String)
         json_data = JSON.parse(contents)
@@ -118,7 +118,7 @@ function main()
         ψ .= ψ_restart
         δ .= δ_restart
         V .= V_restart
-        prob = ODEProblem(odefun, ψδ, tspan, odeparam)
+        prob = ODEProblem(odefun_BP5, ψδ, tspan, odeparam)
     end
 
 

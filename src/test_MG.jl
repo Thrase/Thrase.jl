@@ -1,4 +1,4 @@
-include("../../src/Assembling_3D_matrices.jl")
+include("Assembling_3D_matrices.jl")
 include("utils_MG.jl")
 
 clear_mg_struct_CUDA(mg_struct_CUDA)

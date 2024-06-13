@@ -3,9 +3,7 @@ using Printf
 using DelimitedFiles
 using IterativeSolvers
 
-# include("coefficients.jl")
 include("helper.jl")
-# include("domain.jl")
 
 global const ctr = Ref{Int64}(1)
 
@@ -53,7 +51,7 @@ odeparam = (
 
 
 # ODE function
-function odefun(dψV, ψδ, odeparam, t)
+function odefun_BP5(dψV, ψδ, odeparam, t)
     @show t
     @unpack_namedtuple odeparam;
     if reject_step[1]
