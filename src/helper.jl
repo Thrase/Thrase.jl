@@ -396,7 +396,7 @@ function test_unpack(p)
 end
 
 
-function create_text_files(path, station_strings, station_indices, δ, τb, θ, t)
+function create_text_files_BP5(path, station_strings, station_indices, δ, τb, θ, t)
     Vzero = 1e-20
     for n = 1:length(station_strings)
         XXX = path * "fltst_strk" * station_strings[n] * ".txt"
@@ -440,7 +440,7 @@ end
 
 
 
-function write_to_file(path, ψδ, t, i, odeparam, station_strings, station_indices)
+function write_to_file_BP5(path, ψδ, t, i, odeparam, station_strings, station_indices)
     @unpack_namedtuple odeparam;
     Vmax = 0.0
     # if t == (sim_years ./ 31556926)

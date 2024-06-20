@@ -103,7 +103,7 @@ function main()
 
     if !isfile(path_time * "restart_value.json")
         global ctr[] = 1
-        create_text_files(path_time, station_strings, station_indices, δ, τb, θ, 0)
+        create_text_files_BP5(path_time, station_strings, station_indices, δ, τb, θ, 0)
         tspan = (0, BP5_coeff.sim_years * year_seconds)
         prob = ODEProblem(odefun_BP5, ψδ, tspan, odeparam)
     else
@@ -123,7 +123,7 @@ function main()
 
     # Creating output
     callback_func = SavingCallback(
-        (ψδ, t, i) -> write_to_file(path_time, ψδ, t, i, odeparam, station_strings, station_indices), SavedValues(Float64, Float64))
+        (ψδ, t, i) -> write_to_file_BP5(path_time, ψδ, t, i, odeparam, station_strings, station_indices), SavedValues(Float64, Float64))
 
 
 
