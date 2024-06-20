@@ -99,7 +99,7 @@ function main()
           station_ind[i]
         end
         return Integer.(station_ind)
-      end
+    end
       
     station_indices = find_station_index(stations, z)
     station_strings = ["000", "025", "005", "075", "100", "125", "150", "175", "200", "250", "300", "350"] # "125" corresponds to 12.5 km down dip; these are necessary for writing to files
@@ -146,7 +146,7 @@ function main()
     prob = ODEProblem(odefun_stripped, ψδ, tspan, odeparam)
  
     # Set call-back function so that files are written to after successful time steps only.
-    cb_fun = SavingCallback((ψδ, t, i) -> write_to_file(pth, ψδ, t, i, z, flt_loc, flt_loc_indices,station_strings, station_indices, odeparam, "BP1_", 0.1 * year_seconds), SavedValues(Float64, Float64))
+    cb_fun = SavingCallback((ψδ, t, i) -> write_to_file(pth, ψδ, t, i, z, flt_loc, flt_loc_indices,station_strings, station_indices, odeparam, sim_years, "BP1_", 0.1 * year_seconds), SavedValues(Float64, Float64))
   
     # Make text files to store on-fault time series and slip data,
     # Also initialize with initial data:
