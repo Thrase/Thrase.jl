@@ -64,7 +64,7 @@ function create_text_files(pth, flt_loc, flt_loc_indices, stations, station_stri
 
 end
 
-function write_to_file(pth, ψδ, t, i, zf, flt_loc, flt_loc_indices, station_strings, station_indices, p, base_name="", tdump=100)
+function write_to_file(pth, ψδ, t, i, zf, flt_loc, flt_loc_indices, station_strings, station_indices, p, sim_years, base_name="", tdump=100)
   
   path_to_slip = pth * "slip.dat"
   Vmax = 0.0
