@@ -23,14 +23,14 @@ Hx = 20
 Hz = 20 
 # number of grid points in each dimension 
 # make sure to resolve h* and l_b; should be written as integer.
-Nr = 500
-Ns = 1000
+Nr = 1000
+Ns = 2000
 #
 # Physical Domain: (x, z) in (0, Lx) x (-Lz, Lz)
 # desired grid spacing in [0, Hx] in physical domain (km)
-dx = .05
+dx = .025
 #desired grid spacing in[-Hz, Hz] in physical domain (km)
-dz = .05  
+dz = .025  
 # length scales over which grid stretching occurs, should be larger than grid spacing in logical domain in order to resolve:
 el_r = 0.05  
 el_s = 0.05  
