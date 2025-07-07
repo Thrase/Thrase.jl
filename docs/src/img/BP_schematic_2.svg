@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 635.65 224.75">
+  <defs>
+    <style>
+      .cls-1, .cls-2, .cls-3, .cls-4, .cls-5 {
+        font-family: Times-Roman, 'Times Roman';
+      }
+
+      .cls-1, .cls-6, .cls-4 {
+        fill: #231f20;
+      }
+
+      .cls-1, .cls-4 {
+        font-size: 8px;
+      }
+
+      .cls-2 {
+        font-size: 7.2px;
+      }
+
+      .cls-2, .cls-7, .cls-3, .cls-5, .cls-8 {
+        fill: #000;
+      }
+
+      .cls-6, .cls-9, .cls-10, .cls-11, .cls-12 {
+        stroke-width: 0px;
+      }
+
+      .cls-7, .cls-3 {
+        font-size: 11px;
+      }
+
+      .cls-7, .cls-8 {
+        font-family: Times-Italic, 'Times Italic';
+        font-style: italic;
+      }
+
+      .cls-13 {
+        stroke-width: .5px;
+      }
+
+      .cls-13, .cls-14 {
+        stroke-linejoin: round;
+      }
+
+      .cls-13, .cls-14, .cls-15, .cls-10, .cls-16, .cls-17 {
+        fill: none;
+      }
+
+      .cls-13, .cls-14, .cls-15, .cls-16, .cls-17 {
+        stroke: #231f20;
+      }
+
+      .cls-9 {
+        fill: #c2c2d1;
+      }
+
+      .cls-4 {
+        letter-spacing: 0em;
+      }
+
+      .cls-14 {
+        stroke-width: .9px;
+      }
+
+      .cls-15 {
+        stroke-width: .67px;
+      }
+
+      .cls-18 {
+        clip-path: url(#clippath-4);
+      }
+
+      .cls-19 {
+        clip-path: url(#clippath-12);
+      }
+
+      .cls-20 {
+        clip-path: url(#clippath);
+      }
+
+      .cls-16 {
+        stroke-dasharray: 0 0 1.79 1.79;
+        stroke-miterlimit: 10;
+      }
+
+      .cls-11 {
+        fill: #e6e7e8;
+      }
+
+      .cls-17 {
+        stroke-width: .57px;
+      }
+
+      .cls-12 {
+        fill: #fff;
+      }
+
+      .cls-5 {
+        font-size: 6.41px;
+      }
+
+      .cls-8 {
+        font-size: 10.8px;
+      }
+    </style>
+    <clipPath id="clippath">
+      <polygon class="cls-10" points="190.53 206.3 547.88 217.32 547.88 11.01 190.53 0 190.53 206.3"/>
+    </clipPath>
+    <clipPath id="clippath-4">
+      <polygon class="cls-10" points="190.53 0 547.88 11.01 547.88 217.32 190.53 206.3 190.53 0"/>
+    </clipPath>
+    <clipPath id="clippath-12">
+      <polygon class="cls-10" points="190.53 0 547.88 11.01 547.88 217.32 190.53 206.3 190.53 0"/>
+    </clipPath>
+  </defs>
+  <rect class="cls-12" y="11.01" width="548.31" height="213.74"/>
+  <g class="cls-20">
+    <rect class="cls-9" x="264.81" y="62.37" width="209.55" height="33.27"/>
+    <rect class="cls-15" x="264.81" y="62.37" width="209.55" height="33.27"/>
+    <path class="cls-13" d="M375.39,122.41h.61M422.59,122.41h-.62"/>
+    <line class="cls-14" x1="264.85" y1="185.2" x2="264.85" y2="62.37"/>
+    <polygon class="cls-6" points="267.46 183.42 264.85 193.17 262.23 183.42 267.46 183.42"/>
+    <line class="cls-14" x1="228.16" y1="62.39" x2="497.71" y2="62.39"/>
+    <polygon class="cls-6" points="495.93 65.01 505.68 62.39 495.93 59.78 495.93 65.01"/>
+    <text class="cls-2" transform="translate(344.31 120.61)"><tspan x="0" y="0">linear elastic bulk</tspan></text>
+    <text class="cls-3" transform="translate(259.5 144.52) rotate(-90)"><tspan x="0" y="0">fault at x = 0</tspan></text>
+    <rect class="cls-11" x="264.86" y="95.64" width="209.5" height="59.73"/>
+    <text class="cls-3" transform="translate(344.84 58.42)"><tspan x="0" y="0">free surface</tspan></text>
+    <text class="cls-8" transform="translate(262.66 200.52)"><tspan x="0" y="0">z</tspan></text>
+    <text class="cls-7" transform="translate(508.76 63.74)"><tspan x="0" y="0">x</tspan></text>
+    <g class="cls-18">
+      <text/>
+    </g>
+    <g class="cls-19">
+      <polyline class="cls-17" points="264.86 155.37 264.86 95.64 474.36 95.64 474.36 155.37"/>
+      <line class="cls-17" x1="264.86" y1="155.37" x2="266.86" y2="155.37"/>
+      <line class="cls-17" x1="264.86" y1="155.37" x2="474.36" y2="155.37"/>
+    </g>
+  </g>
+  <text class="cls-3" transform="translate(345.01 165.77)"><tspan x="0" y="0">free surface</tspan></text>
+  <text class="cls-3" transform="translate(486.24 145.32) rotate(-90)"><tspan x="0" y="0">slow tectonic </tspan><tspan x="0" y="13.2">loading at x = L </tspan></text>
+  <text class="cls-3" transform="translate(501.11 72.91) rotate(-90) scale(.58)"><tspan x="0" y="0">x</tspan></text>
+  <text class="cls-1" transform="translate(467.88 58.42)"><tspan x="0" y="0">L </tspan></text>
+  <text class="cls-4" transform="translate(473.36 59.08) scale(.58)"><tspan x="0" y="0">x</tspan></text>
+  <text class="cls-1" transform="translate(475.52 58.42)"><tspan x="0" y="0">,L </tspan></text>
+  <text class="cls-1" transform="translate(482.64 59.08) scale(.58)"><tspan x="0" y="0">z</tspan></text>
+  <text class="cls-1" transform="translate(267.1 59.6)"><tspan x="0" y="0">0,0</tspan></text>
+  <text class="cls-1" transform="translate(467.95 165.62)"><tspan x="0" y="0">L </tspan></text>
+  <text class="cls-4" transform="translate(473.42 166.29) scale(.58)"><tspan x="0" y="0">x</tspan></text>
+  <text class="cls-1" transform="translate(475.58 165.62)"><tspan x="0" y="0">,L </tspan></text>
+  <text class="cls-1" transform="translate(482.71 166.29) scale(.58)"><tspan x="0" y="0">z</tspan></text>
+  <text class="cls-1" transform="translate(267.1 165.62)"><tspan x="0" y="0">0,L </tspan></text>
+  <text class="cls-1" transform="translate(278.33 166.29) scale(.58)"><tspan x="0" y="0">z</tspan></text>
+  <rect class="cls-16" x="55.21" y="63.74" width="209.5" height="91.52"/>
+  <text class="cls-3" transform="translate(82.81 95.55)"><tspan x="0" y="0">anti-symmetric motion</tspan></text>
+  <line class="cls-10" x1="463.76" y1="83.26" x2="465.18" y2="92.71"/>
+  <line class="cls-10" x1="463.76" y1="83.26" x2="464.47" y2="95.64"/>
+  <g>
+    <line class="cls-13" x1="464.82" y1="93.2" x2="464.82" y2="62.15"/>
+    <polygon class="cls-6" points="464.82 95.64 466.22 92.21 464.82 93.02 463.42 92.21 464.82 95.64"/>
+  </g>
+  <polyline class="cls-10" points="464.82 62.15 466.11 65.22 464.82 64.67 463.52 65.22 464.82 62.15"/>
+  <text class="cls-7" transform="translate(459.64 78.98)"><tspan x="0" y="0">W</tspan></text>
+  <text class="cls-5" transform="translate(468.8 80.64)"><tspan x="0" y="0">f</tspan></text>
+</svg>
