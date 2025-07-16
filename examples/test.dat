@@ -1,10 +1,11 @@
 # Input parameter file. 
-# Solves the SEAS benchmark problem BP1-QD:
+# Solves a variation of the SEAS benchmark problem BP1-QD:
 # https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf
+# with modified parameters and only for one year. 
 #
 # details of output data:
 # path to directory that stores output data
-pth = ./output/
+pth = ./output/test_data/
 # write-out every "stride_space" grid points along fault
 stride_space = 1 
 # write-out every "stride_time" time steps

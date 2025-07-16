@@ -764,4 +764,4 @@ function variable_diagonal_sbp_D2(p, N, B::AbstractArray; xc = (-1, 1))
 end
 #}}}
 
-nothing
+export diagonal_sbp_D1, diagonal_sbp_D2, variable_diagonal_sbp_D2

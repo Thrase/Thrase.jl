@@ -6,9 +6,9 @@
 # path to directory that stores output data
 pth = ./output/
 # write-out every "stride_space" grid points along fault
-stride_space = 1 
+stride_space = 1
 # write-out every "stride_time" time steps
-stride_time = 5
+stride_time = 20
 #
 # computational domain size
 # x-domain is (Lx1, Lx2) (km)
@@ -20,11 +20,11 @@ Lz2 = 80
 #
 # number of grid points in each dimension 
 # make sure to resolve h* and l_b; should be written as integer.
-Nx = 128
-Nz = 128
+Nx = 800
+Nz = 800
 #
 # how many years to simulate
-sim_years = 500
+sim_years = 2000
 #
 # loading rate
 Vp = 1e-9
@@ -38,7 +38,7 @@ cs = 3.464
 RSamin = 0.01
 RSamax = 0.025
 RSb = 0.015
-RSDc = 0.032
+RSDc = 0.008
 RSf0 = 0.6
 RSV0 = 1e-6
 RSVinit = 1e-9

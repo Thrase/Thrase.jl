@@ -5,11 +5,12 @@ using DelimitedFiles
 using DifferentialEquations
 using Interpolations
 
+
 function interp1(xpt, ypt, x)
 
   knots = (xpt,) 
   itp = interpolate(knots, ypt, Gridded(Linear()))
-  itp[x]  # endpoints of x must be between xpt[1] and xpt[end]
+  #itp[x]  # endpoints of x must be between xpt[1] and xpt[end]
 end
       
 function create_text_files(pth, flt_loc, flt_loc_indices, stations, station_strings, station_indices, t, RSVinit, δ, τz0, θ)
@@ -83,7 +84,7 @@ function write_to_file(pth, ψδ, t, i, zf, flt_loc, flt_loc_indices, station_st
  
     θ = (p.RSDc * exp.((ψ .- p.RSf0) ./ p.RSb)) / p.RSV0  # Invert ψ for θ.
   
-    if mod(ctr[], p.save_stride_fields) == 0 || t == (sim_years ./ 31556926)
+    if mod(ctr[], p.save_stride_fields) == 0 || t == (p.sim_years ./ 31556926)
       vv = Array{Float64}(undef, 1, 2+length(flt_loc))
       vv[1] = t
       vv[2] = log10(Vmax)
@@ -281,7 +282,7 @@ function plot_fault_time_series(field, filename)
     #return nothing
 end
 
-# Function for reading in numerical parameters for basin simulations
+# Function for reading in numerical parameters 
 function read_params(f_name)
   f = open(f_name, "r")
   tmp_params = []
@@ -537,7 +538,7 @@ end
 
 
 
-  export read_params, read_params_BP6, plot_slip, plot_fault_time_series
+  export read_params, read_params_BP6, plot_slip, plot_fault_time_series, find_ind 
   export find_station_index
   export stepcheck, create_text_files, write_to_file
   export animate_slip, interp1

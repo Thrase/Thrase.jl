@@ -31,7 +31,7 @@ using DelimitedFiles
   RS_FAULT = 7
   VP_FAULT = 8
   (verts, EToV, EToF,
-   FToB, EToDomain) = read_inp_2d(joinpath(@__DIR__, "meshes/BP1_v1.inp"))
+   FToB, EToDomain) = read_inp_2d(joinpath(@__DIR__, "../../meshes/BP1_v1.inp"))
   verts = [-1 0 1 -1 0 1 -1 0 1;
             -1 -1 -1 0 0 0 1 1 1];
   EToV = [1 2 4 5;
