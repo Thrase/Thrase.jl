@@ -70,7 +70,7 @@ include("src/2D/BP6_driver_dispBC.jl");
 
 
 ```
-Note that the parameters set in the input file "examples/bp1-qd.dat" are slightly modified from the benchmark description to allow for fast simulation on most personal computers. The driver file calls a stripped down version of the code (for training purposes).
+
  
 # Documentation: 
 <a href="https://thrase.github.io/Thrase.jl/dev/"> More to come soon...
