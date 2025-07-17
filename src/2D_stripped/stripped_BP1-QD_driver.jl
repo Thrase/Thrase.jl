@@ -9,7 +9,6 @@ using LinearAlgebra
 using DifferentialEquations
 using DiffEqCallbacks
 using DelimitedFiles
-
 const year_seconds = 31556926
 global const ctr = Ref{Int64}(1) 
 
@@ -21,8 +20,8 @@ include("../utils_2D.jl")
 
 
 function main()
-
-
+   
+    
     ### read input parameters from .dat file
     (pth, stride_space, stride_time, xc, zc, Nx, Nz,
     sim_years, Vp, ρ, cs, σn, RSamin, RSamax, RSb, RSDc,
@@ -34,7 +33,7 @@ function main()
         # folder already exists and data will be overwritten.
         # TODO: add user input (whether or not they want data overwritten)
     end
-    
+
     # Define shear modulus μ and radiation damping η
     μ = cs^2 * ρ 
     η = μ / (2 * cs)
