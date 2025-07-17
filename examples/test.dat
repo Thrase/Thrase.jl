@@ -5,7 +5,7 @@
 #
 # details of output data:
 # path to directory that stores output data
-pth = ./output/test_data/
+pth = ../output/test_data/
 # write-out every "stride_space" grid points along fault
 stride_space = 1 
 # write-out every "stride_time" time steps
