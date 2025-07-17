@@ -2,13 +2,15 @@ using Thrase
 using Test
 using Printf
 
+BASE_FOLDER = dirname(dirname(pathof(Thrase)))
 
-@testset "Thrase.jl" begin
-   
+localARGS = [joinpath(BASE_FOLDER, "examples", "test.dat")]
+
+
+@testset "Thrase.jl" begin 
    try
-      localARGS = ["./examples/test.dat"]
-      print(joinpath(@__DIR__,"/src/2D_stripped/stripped_BP1-QD_driver.jl"))
-      include("/Users/brittanyerickson/Desktop/Thrase/Thrase.jl/src/2D_stripped/stripped_BP1-QD_driver.jl");
+      testfile = joinpath(BASE_FOLDER, "src/2D_stripped", "stripped_BP1-QD_driver.jl")
+      include(testfile)
       print("success!\n")
    catch
       print("cannot run bp1-qd variation")

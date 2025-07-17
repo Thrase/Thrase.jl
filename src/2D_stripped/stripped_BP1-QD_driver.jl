@@ -12,20 +12,18 @@ using DelimitedFiles
 const year_seconds = 31556926
 global const ctr = Ref{Int64}(1) 
 
-
-
 include("ops_stripped.jl")
 include("odefun_stripped.jl")
 include("../utils_2D.jl")
 
-
 function main()
    
-    
-    ### read input parameters from .dat file
+
+    ### read input par ameters from .dat file
     (pth, stride_space, stride_time, xc, zc, Nx, Nz,
     sim_years, Vp, ρ, cs, σn, RSamin, RSamax, RSb, RSDc,
     RSf0, RSV0, RSVinit, RSH1,RSH2, RSWf, SBPp) = read_params(localARGS[1])
+    
 
     try
         mkdir(pth)
