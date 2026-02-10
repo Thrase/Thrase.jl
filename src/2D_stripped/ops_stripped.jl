@@ -103,7 +103,7 @@ function get_operators(p, Nx, Nz, μ; xc = (-1, 1), zc = (-1, 1))
   return (A, B, H̃, T, e)
 end
 
-function bdry_vec_strip!(g, B, x, z, slip_data, remote_data, free_surface_data, Lx, Lz)
+function bdry_vec_strip!(g, B, slip_data, remote_data, free_surface_data)
 
     
   g[:] .= 0

@@ -9,6 +9,7 @@ using LinearAlgebra
 using DifferentialEquations
 using DiffEqCallbacks
 using DelimitedFiles
+
 const year_seconds = 31556926
 global const ctr = Ref{Int64}(1) 
 
@@ -44,7 +45,7 @@ function main()
     Lx = xc[2]
     Lz = zc[2]
 
-    # create operators
+    # create operators for single domain with constant grid spacing:
     (A, B, H̃, T, e) = get_operators(SBPp, Nx, Nz, μ; xc = xc, zc = zc)
 
     A = lu(A)  # LU matrix factorization
@@ -57,7 +58,7 @@ function main()
     δ = zeros(Nz+1)
     
     # fill in initial boundary data into b
-    bdry_vec_strip!(b, B, x, z, δ ./ 2, (t .* Vp./2)*ones(size(z)), zeros(size(x)), Lx, Lz)
+    bdry_vec_strip!(b, B, δ ./ 2, (t .* Vp./2)*ones(size(z)), zeros(size(x)))
     
     u = A \ b # solve linear system with a backsolve to obtain initial displacement u(x, z, 0)
  

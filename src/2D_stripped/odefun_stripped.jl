@@ -1,9 +1,7 @@
-#const year_seconds = 31556926
 
 
 using DifferentialEquations
 using Printf
-
 using DelimitedFiles
 
 function odefun_stripped(dψV, ψδ, p, t)
@@ -40,7 +38,7 @@ function odefun_stripped(dψV, ψδ, p, t)
   δ  = ψδ[ δNp .+ (1:N+1) ]
   
   
-  bdry_vec_strip!(b, B, x, z, δ ./ 2, (t .* Vp./2)*ones(size(z)), zeros(size(x)), Lx, Lz)
+  bdry_vec_strip!(b, B, δ ./ 2, (t .* Vp./2)*ones(size(z)), zeros(size(x)))
 
   # solve for displacements everywhere in domain
   u[:] = A \ b

@@ -4,6 +4,7 @@ using LinearAlgebra
 
 ⊗(A,B) = kron(A, B)
 
+
 #{{{ Transfinite Blend
 function transfinite_blend(α1, α2, α3, α4, α1s, α2s, α3r, α4r, r, s)
   # +---4---+
@@ -68,8 +69,7 @@ end
 #}}}
 
 
-
-function create_metrics(Nr, Ns, μ,
+function create_metrics(Nr, Ns, exact_mu,
   xf=(r,s)->(r, ones(size(r)), zeros(size(r))),
   yf=(r,s)->(s, zeros(size(s)), ones(size(s))))
 
@@ -88,8 +88,10 @@ function create_metrics(Nr, Ns, μ,
   (x, xr, xs) = xf(r, s)
   (y, yr, ys) = yf(r, s)
 
-  J = xr .* ys - xs .* yr
 
+  μ = exact_mu(x, y)
+  J = xr .* ys - xs .* yr
+ 
   @assert minimum(J) > 0
 
   JI = 1 ./ J
@@ -100,9 +102,10 @@ function create_metrics(Nr, Ns, μ,
   sy =  xr ./ J
 
   # variable coefficient matrix components
-  crr = J .* (rx .* μ .* rx + ry .* μ .* ry)
-  crs = J .* (sx .* μ .* rx + sy .* μ .* ry)
-  css = J .* (sx .* μ .* sx + sy .* μ .* sy)
+  crr = J .* (rx .* μ .* rx .+ ry .* μ .* ry)
+  crs = J .* (sx .* μ .* rx .+ sy .* μ .* ry)
+  css = J .* (sx .* μ .* sx .+ sy .* μ .* sy)
+
 
   # surface matrices
   (xf1, yf1) = (view(x, 1, :), view(y, 1, :))
@@ -144,13 +147,14 @@ function create_metrics(Nr, Ns, μ,
   rx = rx, ry = ry, sx = sx, sy = sy)
 end
 
-function get_operators(p, Nr, Ns, metrics=create_metrics(p,Nr,Ns),
+function get_operators(p, Nr, Ns, metrics=create_metrics(Nr,Ns,μ);
                      crr = metrics.crr,
                      css = metrics.css,
                      crs = metrics.crs)
   csr = crs
   J = metrics.J
 
+  
   Nrp = Nr + 1
   Nsp = Ns + 1
   Np = Nrp * Nsp
@@ -159,7 +163,7 @@ function get_operators(p, Nr, Ns, metrics=create_metrics(p,Nr,Ns),
   (Dr, HrI, Hr, r) = diagonal_sbp_D1(p, Nr; xc = (-1,1))
   (Ds, HsI, Hs, s) = diagonal_sbp_D1(p, Ns; xc = (-1,1))
 
-  # Identity matrices for the computation
+  # Identity matrices
   Ir = sparse(I, Nrp, Nrp)
   Is = sparse(I, Nsp, Nsp)
 
@@ -207,7 +211,7 @@ function get_operators(p, Nr, Ns, metrics=create_metrics(p,Nr,Ns),
     VSrN[stSrN .+ (1:length(Ve))] = Ve
     stSrN += length(Ve)
   end
-  # TODO: is all this for Sr0 etc necessayr? can't we just do kronecker with 1D op?
+
   Drr = sparse(IArr[1:stArr], JArr[1:stArr], VArr[1:stArr], Np, Np)
   Sr0 = sparse(ISr0[1:stSr0], JSr0[1:stSr0], VSr0[1:stSr0], Np, Np)  
   SrN = sparse(ISrN[1:stSrN], JSrN[1:stSrN], VSrN[1:stSrN], Np, Np)
@@ -274,9 +278,9 @@ function get_operators(p, Nr, Ns, metrics=create_metrics(p,Nr,Ns),
   @assert SsN ≈ (SN ⊗ (Hr * sparse(Diagonal(css[Nrp*Ns .+ (1:Nrp)]))))
   =#
 
-  #{{{ Set up the sr and rs derivative matrices
-  Dsr = (Ds ⊗ Ir) * sparse(1:length(crs), 1:length(crs), view(crs, :)) * (Is ⊗ Dr)
-  Drs = (Is ⊗ Dr) * sparse(1:length(csr), 1:length(csr), view(csr, :)) * (Ds ⊗ Ir)
+  #{{{ Set up the rs and sr derivative matrices
+  Drs = (Is ⊗ Dr) * sparse(1:length(crs), 1:length(crs), view(crs, :)) * (Ds ⊗ Ir)
+  Dsr = (Ds ⊗ Ir) * sparse(1:length(csr), 1:length(csr), view(csr, :)) * (Is ⊗ Dr)
   #}}}
 
   #
@@ -292,20 +296,8 @@ function get_operators(p, Nr, Ns, metrics=create_metrics(p,Nr,Ns),
   es0T = sparse([1], [1  ], [1], 1, Nsp)
   esNT = sparse([1], [Nsp], [1], 1, Nsp)
 
-  
-  #cmax = maximum([maximum(crr), maximum(crs), maximum(css)])
 
-  #
-  # Store boundary coefficients as matrices - waht are these for?
-  #
-  #crs0 = sparse(Diagonal(crs[1:Nrp]))
-  #crsN = sparse(Diagonal(crs[Nrp*Ns .+ (1:Nrp)]))
-  #csr0 = sparse(Diagonal(csr[1   .+ Nrp*(0:Ns)]))
-  #csrN = sparse(Diagonal(csr[Nrp .+ Nrp*(0:Ns)]))
-
-  #
   # Surface mass matrices
-  #
   H1 = Hs
   H1I = HsI
 
@@ -318,13 +310,18 @@ function get_operators(p, Nr, Ns, metrics=create_metrics(p,Nr,Ns),
   H4 = Hr
   H4I = HrI
 
-
-  # Surface quadtrature matrices
+  # Surface quadrature matrices
   H1 = H2 = Hs 
   H3 = H4 = Hr
 
   H = (Hs, Hs, Hr, Hr)
   HI = (HsI, HsI, HrI, HrI)
+
+  sJ1 = spdiagm(0 => metrics.sJ[1])
+  sJ2 = spdiagm(0 => metrics.sJ[2])
+
+  sJ1_J1 = spdiagm(0 => metrics.sJ[1] ./ metrics.J[1, :])
+  sJ2_J2 = spdiagm(0 => metrics.sJ[2] ./ metrics.J[Nrp, :])
 
   J = spdiagm(0 => reshape(metrics.J, Nrp*Nsp))
 
@@ -334,6 +331,9 @@ function get_operators(p, Nr, Ns, metrics=create_metrics(p,Nr,Ns),
        convert(SparseMatrixCSC{Float64, Int64}, kron(es0, Ir)),
        convert(SparseMatrixCSC{Float64, Int64}, kron(esN, Ir)))
   
+
+  
+ 
   # coefficent matrices on each of the four faces
   Crr1 = spdiagm(0 => crr[1, :])
   Crs1 = spdiagm(0 => crs[1, :])
@@ -355,43 +355,45 @@ function get_operators(p, Nr, Ns, metrics=create_metrics(p,Nr,Ns),
   Csr4 = spdiagm(0 => crs[:, Nsp])
   Crr4 = spdiagm(0 => crr[:, Nsp])
  
+
+  Hinv = HsI ⊗ HrI
   # penalty matrices:
   β = 1
-  d = 1
-  h1 = Hr[1, 1] #TODO: ???
-  Z_1 = β * (d/h1) * Crr1 # TODO: are these correct?
-  Z_2 = β * (d/h1) * Crr2
+  d = 2 # dimension
+  h1 = Hr[1, 1] 
+
+   Z_1 = β * (d/h1) * (Is ⊗ (sJ1_J1)) * (Is ⊗ Crr1) # TODO: check
+   Z_2 = β * (d/h1) * (Is ⊗ (sJ2_J2)) * (Is ⊗ Crr2)
   
-  # discrete boundary traction operators:
-  T_1 = nCrr1 * (Iz ⊗ S0x) - Crs1 * (Dz ⊗ Ix)
-  T_2 = Crr2 * (Iz ⊗ SNx) + Crs2 * (Dz ⊗ Ix)
-  T_3 = -Css3 * (S0z ⊗ Ix) - Csr3 * (Iz ⊗ Dx)
-  T_4 = -Css4 * (SNz ⊗ Ix) - Csr4 * (Iz ⊗ Dx)  # TODO: I'm sure these are wrong?   Do they not build in normal derivative? maybe i did. 
-  T = (T_1, T_2, T_3, T_4)
-  
-        
+
+  # discrete boundary traction operators: #TODO: check
+  T_1 = -Sr0 - ((Crs1*Ds) ⊗ Ir)
+  T_2 = SrN + ((Crs2*Ds) ⊗ Ir)
+  T_3 = -(Is ⊗ (Csr3*Dr)) - Ss0
+  T_4 = (Is ⊗ (Csr4*Dr)) + SsN 
+  T = (T_1, T_2, T_3, T_4)  
+    
   # Dirichlet on faces 1 and 2:
-  SAT_1 = Hinv * (T_1 .- Z_1)' * e[1] * H1 * e[1]'   #TODO: fix these with A&D paper
-  SAT_2 = Hinv * (T_2 .- Z_2)' * e[2] * H2 * e[2]'   #TODO: fix these with A&D paper
+  SAT_1 = Hinv * (T_1 .- Z_1)' * e[1] * H1 * e[1]'   
+  SAT_2 = Hinv * (T_2 .- Z_2)' * e[2] * H2 * e[2]'  
 
   # Neumann on faces 3 and 4:
-  SAT_3 = -Hinv * e[3] * H3 * e[3]' * T_3        #TODO: fix these with A&D paper
-  SAT_4 = -Hinv * e[4] * H4 * e[4]' * T_4        #TODO: fix these with A&D paper
+  SAT_3 = -Hinv * e[3] * H3 * e[3]' * T_3      
+  SAT_4 = -Hinv * e[4] * H4 * e[4]' * T_4       
 
   # boundary data operators for Dirichlet faces 1 and 2: 
-  B1 = Hinv * (T_1 .- Z_1)' * e[1] * H1   #TODO: fix this with A&D paper
-  B2 = Hinv * (T_2 .- Z_2)' * e[2] * H2   #TODO: fix this with A&D paper
+  B1 = Hinv * (T_1 .- Z_1)' * e[1] * H1   
+  B2 = Hinv * (T_2 .- Z_2)' * e[2] * H2  
 
   # boundary data operators for Neumann faces 3 and 4: 
-  B3 = -Hinv * e[3] * H3  #TODO: fix this with A&D paper
-  B4 = -Hinv * e[4] * H4  #TODO: fix this with A&D paper
-
+  B3 = -Hinv * e[3] * H3 
+  B4 = -Hinv * e[4] * H4 
   D2 = Drr + Dss + Drs + Dsr
   A = D2 + SAT_1 + SAT_2 + SAT_3 + SAT_4  # Creation of LHS matrix
 
   B = (B1, B2, B3, B4)  # These will multiply the boundary data when forming the RHS.
 
-  H̃ = Hz ⊗ Hx            # Need this for convergence tests.
+  H̃ = Hs ⊗ Hr            # Need this for convergence tests.
 
 
   return (A, B, H̃, T, e, J, coord = metrics.coord, 
@@ -405,36 +407,34 @@ end
 
 
 
-function bdry_vec_strip!(g, B, x, z, slip_data, remote_data, free_surface_data, Lx, Lz)
+function bdry_vec!(g, B, g1, g2, g3, g4, sJ)
 
     
   g[:] .= 0
 
   # fault (Dirichlet):
-  vf = slip_data
+  vf = g1
   g[:] += B[1] * vf
 
   # FACE 2 (Dirichlet):
-  vf = remote_data
+  vf = g2
   g[:] += B[2] * vf
 
-  # FACE 3 (Neumann):
-  gN = free_surface_data
-  vf = gN
-  g[:] += B[3] * sJ[3] * vf  #TODO: prob error
+  # # FACE 3 (Neumann):
+  vf = g3
+  g[:] += B[3] * (sJ[3] .* vf)  
 
   # FACE 4 (Neumann):
-  gN = free_surface_data
-  vf = gN
-  g[:] += B[4] * sJ[4] * vf #TODO: prob error
+  vf = g4
+  g[:] += B[4] *(sJ[4] .* vf) 
   
 
 end
 
-
-function computetraction_stripped(T, u, e)
+function computetraction_stripped(T, u, e, sJ)
   e1 = e[1]
-  tau = (-e1' * T[1]* u) ./ sJ #TODO: check for correctness
+  tau = (-e1' * T[1]* u) ./ sJ[1] #TODO: check for correctness and generality
+  #sJ maps physical to logical domain
   return tau
 end
   
@@ -486,6 +486,96 @@ end
   end
 
 
+  function check_physical_domain(r_star, s_star, el_r, el_s, Nr, Ns)
+    if r_star > 1
+      print("error: increase Nr or dx!\n")
+      
+    end
+    
+    if r_star ≈ 1
+      print("using constant grid spacing in x-direction\n")
+      
+    end
 
-export transfinite_blend, create_metrics, get_operators, computetraction
-export rateandstate, newtbndv
+    if el_r < 2/Nr
+        print("error: increase el_r!\n")
+        
+    end
+    
+    if s_star > 1
+        print("error: increase Ns or dz!\n")
+       
+    end
+    
+    if s_star ≈ 1
+      print("using constant grid spacing in z-direction")
+     
+    end
+
+    if el_s < 2/Ns
+        print("error: increase el_s!")
+        
+    end
+    return
+  end
+
+
+
+  function get_tanh_params(xstart, xfinal, L, xistar, el_c)
+    
+    num = L - xistar*(xfinal - xstart);
+    den = tanh((xistar-1)/el_c) + (xistar - 1)*tanh(-1/el_c);
+    
+    if xistar == 1
+        A = 0;
+        B = xfinal - xstart;
+        C = 0;
+    else
+        A = num/den;
+        B = A*tanh(-1/el_c) + xfinal - xstart;
+        C = xfinal - B;
+    end
+    return (A, B, C)
+  end
+
+
+
+  function bisect_xistar(L0,R0,Wf,Lz,xistar,tol)
+
+    L = L0;  R = R0;
+    m = (L+R)/2;
+    
+    ERR = 10; maxiter = 200;
+    it = 0;
+    
+    while ERR > tol && it < maxiter
+        B = L;
+        fL = ((Wf-Lz)/(exp(B*xistar)-exp(B)))*B*exp(B*xistar) - Wf/xistar;
+        B = R; 
+        fR = ((Wf-Lz)/(exp(B*xistar)-exp(B)))*B*exp(B*xistar) - Wf/xistar;
+        B = m;
+        fm = ((Wf-Lz)/(exp(B*xistar)-exp(B)))*B*exp(B*xistar) - Wf/xistar;
+        ERR = fm;
+        if fL*fm > 0
+            L = m;
+        else
+            R = m;
+        end
+        m = (L+R)/2; 
+        it = it+1;
+    end
+        
+    if it == maxiter
+        print("failure to converge")
+    end
+    
+    B = m;
+    A = (Wf - Lz)/(exp(B*xistar)-exp(B));
+    C = Wf - A*exp(B*xistar);
+    return (A, B, C)
+  end
+    
+
+export create_metrics, get_operators, computetraction, get_tanh_params, check_physical_domain
+export bdry_vec!
+export rateandstate, newtbndv, bisect_xistar

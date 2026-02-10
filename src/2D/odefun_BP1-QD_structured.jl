@@ -1,74 +1,69 @@
-const year_seconds = 31556926
-global const ctr = Ref{Int64}(1) 
 
 using DifferentialEquations
 using Printf
-
 using DelimitedFiles
-
 
 
 function odefun(dψV, ψδ, p, t)
   
   Vp = p.Vp
-  M = p.M
+  A = p.A
+  sJ = p.sJ
   u = p.u
   Δτ = p.Δτ
   τf = p.τf
-  g = p.g
+  b = p.b
   μshear = p.μshear
   RSa = p.RSa
   RSb = p.RSb
   σn = p.σn
   η = p.η
   RSV0 = p.RSV0
-  τz0 = p.τz0
+  τ0 = p.τ0
   RSDc = p.RSDc
   RSf0 = p.RSf0
   δNp = p.δNp
+  Ns = p.Ns
+  Nr = p.Nr
   N = p.N
-  F = p.F
-  τ = p.τ
-  x = p.x 
-  z = p.z
-  HfI_FT = p.HfI_FT
-  Lx = p.Lx
-  Lz = p.Lz
+  B = p.B
+  T = p.T
+  e = p.e
+
 
   current_time = t ./ 31556926
   print("TIME [YRS] = $(current_time).\n")
 
   ψ  = @view ψδ[        (1:δNp) ]
-  δ  = ψδ[ δNp .+ (1:N+1) ]
+  δ  = ψδ[ δNp .+ (1:Ns+1) ]
   
-  bc_Dirichlet = (lf, x, z) -> (2-lf)*(δ ./ 2) + (lf-1)*fill(t .* Vp./2, size(z))
-  bc_Neumann   = (lf, x, z, nx, nz) -> zeros(size(x))
-  
-  bdry_vec_mod!(g, F, τ, x, z, bc_Dirichlet, bc_Neumann, Lx, Lz)
+
+  # fill in initial boundary data into b
+  bdry_vec!(b, B, δ ./ 2, (t .* Vp./2)*ones(Ns+1), zeros(Nr+1), zeros(Nr+1), sJ)
+
 
   # solve for displacements everywhere in domain
-  u[:] = M \ g
+  u[:] = A \ b
 
   # set up rates of change for  state and slip
   dψ = @view dψV[       (1:δNp) ]
-  V  = @view dψV[ δNp .+ (1:N+1)]
+  V  = @view dψV[ δNp .+ (1:Ns+1)]
 
   dψ .= 0 # initialize values to 0
   V  .= 0 # initialize values to 0
 
   # Update the fault data
   Δτ .= 0
-  lf1 = 1  # fault is at face 1
 
-  Δτ .= computetraction_stripped(HfI_FT, τ, u, δ)
-  τf .= τz0 .+ Δτ
+  Δτ .= computetraction_stripped(T, u, e, sJ)
+  τf .= τ0 .+ Δτ
   
 
   for n = 1:δNp
     ψn = ψ[n]
     an = RSa[n]
 
-    τn = Δτ[n] + τz0
+    τn = Δτ[n] + τ0
   
     VR = abs(τn / η)
     VL = -VR
@@ -85,12 +80,11 @@ function odefun(dψV, ψδ, p, t)
    
   end
  
-  V[δNp+1:N+1] .= Vp
+  V[δNp+1:Ns+1] .= Vp
 
 
   nothing
 end
-
 
 
 export odefun

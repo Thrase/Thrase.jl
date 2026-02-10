@@ -1,0 +1,57 @@
+# Input parameter file. 
+# Solves the SEAS benchmark problem BP1-QD:
+# https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf
+#
+# details of output data:
+# path to directory that stores output data
+pth = ./output/
+# write-out every "stride_space" grid points along fault
+stride_space = 1
+# write-out every "stride_time" time steps
+stride_time = 20
+#
+# computational domain size
+# x-domain is (0, Lx) (km)
+# solve one-sided problem; fault at x = Lx  
+Lx = 80
+# z-domain is (0, Lz) (km)
+Lz = 80
+# dimensions in which constant grid-spacing is applied:
+Hx = 40
+Hz = 40 
+#
+# number of grid points in each dimension 
+# make sure to resolve h* and l_b; should be written as integer.
+Nr = 220
+Ns = 220
+#
+# Physical Domain: (x, z) in (0, Lx) x (-Lz, Lz)
+# desired grid spacing in [0, Hx] in physical domain (km)
+dx = 0.2
+#desired grid spacing in[-Hz, Hz] in physical domain (km)
+dz = 0.2
+# length scales over which grid stretching occurs, should be larger than grid spacing in logical domain in order to resolve:
+el_r = 0.6
+el_s = 0.6
+# how many years to simulate
+sim_years = 350
+# loading rate
+Vp = 1e-9
+# elastcity parameters
+ρ = 2.670
+cs = 3.464
+σn = 50
+# rate-and-state friction parameters
+RSamin = 0.01
+RSamax = 0.025
+RSb = 0.015
+RSDc = 0.016
+RSf0 = 0.6
+RSV0 = 1e-6
+RSVinit = 1.0e-9
+RSH1 = 15
+RSH2 = 18
+RSWf = 40
+#
+# SBP interior spatial order of accuracy
+SBPp   = 2

@@ -1,0 +1,35 @@
+# Input parameter file. 
+# Solves the SEAS benchmark problem BP1-QD:
+# https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf
+#
+# details of output data:
+# number of grid points in each dimension on each element/block
+# make sure to resolve h* and l_b; should be written as integer.
+Nx = 80
+Nz = 80
+#
+# how many years to simulate
+sim_years = 300
+#
+# loading rate
+Vp = 1e-9
+#
+# elastcity parameters
+ρ = 2.670
+cs = 3.464
+σn = 50
+#
+# rate-and-state friction parameters
+RSamin = 0.01
+RSamax = 0.025
+RSb = 0.015
+RSDc = 0.008
+RSf0 = 0.6
+RSV0 = 1e-6
+RSVinit = 1e-9
+RSH1 = 15
+RSH2 = 18
+RSWf = 40
+#
+# SBP interior spatial order of accuracy
+SBPp   = 2
