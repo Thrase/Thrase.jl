@@ -56,21 +56,21 @@ include("test/runtests.jl");
 ```
 
 # Getting Started:
-To run the code for the <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf">first SEAS benchmark</a> problem on an equally spaced mesh (the stripped code is for training purposes)
+To run the code for the <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf">first SEAS benchmark problem (BP1-QD)</a> on an equally spaced mesh (the stripped code is for training purposes)
 
 ```
 localARGS = ["examples/bp1-qd.dat"]
 include("src/2D_stripped/stripped_BP1-QD_driver.jl");
 
 ```
-To run the code for the <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf">first SEAS benchmark problem on a structured, unequal mesh
+To run the code for the <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf">first SEAS benchmark problem (BP1-QD)</a> on a structured, unequal mesh
 
 ```
 localARGS = ["examples/bp1-qd_structured.dat"]
 include("src/2D/BP1-QD_structured_driver.jl");
 
 ```
-To run the code for the <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf">first SEAS benchmark problem on an unstructured mesh
+To run the code for the <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf">first SEAS benchmark problem (BP1-QD)</a>on an unstructured mesh
 
 ```
 localARGS = ["examples/bp1-qd_unstructured.dat"]
