@@ -1,24 +1,16 @@
 # Input parameter file. 
 # Solves a variation of the SEAS benchmark problem BP1-QD:
 # https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf
-# with modified parameters and only for one year. 
+# with modified parameters (Dc = 32) and only for one year. 
+# on a structured mesh of quads, with equal grid spacing.
 #
 # details of output data:
 # path to directory that stores output data
-pth = ./output/test_data/
+pth =./output/test_data/
 # write-out every "stride_space" grid points along fault
 stride_space = 1 
 # write-out every "stride_time" time steps
 stride_time = 5
-#
-# computational domain size
-# x-domain is (x1, x2) (km)
-x1 = 0
-x2 = 80
-# z-domain is (z1, z2) (km)
-z1 = 0
-z2 = 80
-#
 # number of grid points in each dimension 
 # make sure to resolve h* and l_b - should be written as integer.
 Nx = 128
@@ -46,6 +38,14 @@ RSVinit = 1e-9
 RSH1 = 15
 RSH2 = 18
 RSWf = 40
+#
+# computational domain size
+# x-domain is (x1, x2) (km)
+x1 = 0
+x2 = 80
+# z-domain is (z1, z2) (km)
+z1 = 0
+z2 = 80
 #
 # SBP interior spatial order of accuracy
 SBPp   = 2
