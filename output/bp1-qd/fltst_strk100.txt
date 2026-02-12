@@ -1,0 +1,10 @@
+# problem=SEAS Benchmark BP1-QD
+# code=Thrase
+# modeler=B. A. Erickson
+# date=2023/01/09
+# element size=xx m
+# location=on fault, z = 10.0 km
+# Lz = 40 km
+t slip slip_rate shear_stress state
+0.0	0.0	-9.0	26.546122365133364	4.505149978319903
+222.2	2.2105062235637428e-7	-9.004503330276343	26.546122366483456	4.508152199274607
