@@ -56,7 +56,7 @@ include("test/runtests.jl");
 ```
 
 # Getting Started:
-To run the code for the <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf">first SEAS benchmark problem on an equally spaced mesh (the stripped code is for training purposes)
+To run the code for the <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf">first SEAS benchmark</a> problem on an equally spaced mesh (the stripped code is for training purposes)
 
 ```
 localARGS = ["examples/bp1-qd.dat"]
