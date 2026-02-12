@@ -29,9 +29,17 @@ include("../utils_2D.jl")
 
 function main()
     ### input parameters
-    (Nx, Ny, sim_years, Vp, ρ, cs, σn, 
+    (pth, meshfile, Nx, Ny, sim_years, Vp, ρ, cs, σn, 
     RSamin, RSamax, RSb, RSDc,
     RSf0, RSV0, RSVinit, RSH1,RSH2, RSWf, SBPp) = read_params(localARGS[1])
+
+     try
+        mkdir(pth)
+    catch
+        # folder already exists so make a new one.
+        pth = pth*string(now())*"/"
+        mkdir(pth)
+    end
 
     # Define shear modulus μ and radiation damping η
     μ = cs^2 * ρ 
@@ -43,7 +51,7 @@ function main()
     end
 
     # Read in the unstructured mesh input file:
-    (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/BP1_v1.inp")
+    (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/"*meshfile)
     
     # Domain size in x-direction (used to specify loading conditions):
     Lx = maximum(verts[1,:])
@@ -344,7 +352,7 @@ function main()
     # Set call-back function so that fields are written to text file after successful time step only.
     cb = SavingCallback((ψδ, t, i)->savefaultstation(ψδ, t, i, stations,
                                                     FToδstarts, odeparam,
-                                                    "BP1_N_$(Nr[1])_$(Lx)", 10year_seconds),
+                                                    pth*"BP1_N_$(Nr[1])_$(Lx)", 10year_seconds),
                         SavedValues(Float64, Float64))
 
    

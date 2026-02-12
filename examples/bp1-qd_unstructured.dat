@@ -2,8 +2,12 @@
 # Solves the SEAS benchmark problem BP1-QD:
 # https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf
 #
+# path to store output
+pth =./output/bp1-qd-unstructured/
+# name of mesh file:
+meshfile=BP1_v1.inp
 # details of output data:
-# number of grid points in each dimension on each element/block
+# number of grid points in each dimension ON EACH ELEMENT/BLOCK
 # make sure to resolve h* and l_b; should be written as integer.
 Nx = 80
 Nz = 80

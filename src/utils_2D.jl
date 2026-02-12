@@ -191,11 +191,13 @@ function read_params(f_name)
       end
   end
   close(f)
-    params = Vector{Any}(undef, 18)
-    for i = 1:length(tmp_params)-1
+    params = Vector{Any}(undef, 20)
+  params[1] = tmp_params[1]
+  params[2] = tmp_params[2]
+    for i = 3:length(tmp_params)-1
       params[i] = parse(Float64, tmp_params[i])
     end
-    params[18] = parse(Int64, tmp_params[18])
+    params[20] = parse(Int64, tmp_params[20])
   return params
 end
 

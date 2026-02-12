@@ -4,7 +4,7 @@
 # on a structured mesh of quads, with coordinate stretching.
 # details of output data:
 # path to directory that stores output data
-pth = ./output/bp1-qd-structured
+pth = ./output/bp1-qd-structured/
 # write-out every "stride_space" grid points along fault
 stride_space = 1
 # write-out every "stride_time" time steps
