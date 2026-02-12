@@ -82,7 +82,7 @@ function main()
   z = metrics.coord[2]
 
   (mm, δNp) = findmin(abs.(RSWf .- z[1,:]))
-  @show z[1,δNp]
+
   #@assert z[1,δNp] ≈ RSWf
 
   # initialize change in shear stress due to quasi-static deformation

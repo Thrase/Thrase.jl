@@ -9,7 +9,7 @@ localARGS = [joinpath(BASE_FOLDER, "examples", "test.dat")]
 
 @testset "Thrase.jl" begin 
    try
-      testfile = joinpath(BASE_FOLDER, "src/2D_stripped", "BP1_stripped_test.jl")
+      testfile = joinpath(BASE_FOLDER, "src/2D_stripped", "stripped_BP1-QD_driver.jl")
       include(testfile)
       print("success!\n")
    catch

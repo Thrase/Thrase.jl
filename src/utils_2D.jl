@@ -511,8 +511,6 @@ function savefaultstation(ψδ, t, i, stations, FToδstarts, p, base_name="",
         push!(stations.data[s].τ, p.τ[n] - p.η * V[n])
       end
       println("took a step")
-      println(Vmax)
-      println(dp)
       #println(stations.t)
       if length(stations.t) == 1 ||
         ceil((stations.t[end] / tdump)) > ceil((stations.t[end-1] / tdump))

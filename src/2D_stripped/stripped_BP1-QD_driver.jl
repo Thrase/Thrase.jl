@@ -1,44 +1,59 @@
-# Stripped down version of Thrase code (for training purposes)
-# Does not integrate a coordinate transformation. 
-# On a structured mesh of quads.
-# Solves the SEAS benchmark problem BP1-QD:
-# https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf
+# On an unstructured mesh of quads:
+# Solves a manufactured solution
+# Geometry set up to resemble BP1 - so a vertical friction fault down to z = 40km, then steady sliding
 
 using Thrase
 using LinearAlgebra
-using DifferentialEquations
+using OrdinaryDiffEq
 using DiffEqCallbacks
 using DelimitedFiles
+using Dates
+using Plots
+
+do_plotting = true # turn on if you want to plot the grid
 
 const year_seconds = 31556926
 global const ctr = Ref{Int64}(1) 
+
 
 include("ops_stripped.jl")
 include("odefun_stripped.jl")
 include("../utils_2D.jl")
 
-function main()
-   
+# Before running this script, type
+# localARGS = ["./examples/bp1-qd-dev.dat"]
+# on command line 
 
-    ### read input par ameters from .dat file
-    (pth, stride_space, stride_time, Nx, Nz, xc1, xc2, zc1, zc2, 
-    sim_years, Vp, ρ, cs, σn, RSamin, RSamax, RSb, RSDc,
-    RSf0, RSV0, RSVinit, RSH1,RSH2, RSWf, SBPp) = read_params_structured(localARGS[1])
-    
-    xc = (xc1, xc2)
-    zc = (zc1, zc2)
+function main()
+    ### input parameters
+    (pth, stride_space, stride_time, Nx, Nz, sim_years, Vp, ρ, cs, σn, 
+    RSamin, RSamax, RSb, RSDc,
+    RSf0, RSV0, RSVinit, RSH1,RSH2, RSWf, 
+    x1, x2, z1, z2,
+    SBPp) = read_params_structured(localARGS[1])
+
     try
         mkdir(pth)
     catch
         # folder already exists and data will be overwritten.
-        # TODO: add user input (whether or not they want data overwritten)
+        # change path in .dat file if you don't want data overwritten!
     end
+
 
     # Define shear modulus μ and radiation damping η
     μ = cs^2 * ρ 
+    μshear = cs^2 * ρ
     η = μ / (2 * cs)
 
-    # Define 2D domain (x, z) in [0, Lx] x [0, Lz], constant grid spacing
+    # Domain size (km)
+    xc = (x1, x2)
+    zc = (z1, z2)
+
+    function exact_mu(x, y)
+        return μ 
+    end
+
+  # Define 2D domain (x, z) in [0, Lx] x [0, Lz], constant grid spacing
     x = Array(LinRange(xc[1], xc[2], Nx+1))  
     z = Array(LinRange(zc[1], zc[2], Nz+1))
 
@@ -50,6 +65,7 @@ function main()
     (A, B, H̃, T, e) = get_operators(SBPp, Nx, Nz, μ; xc = xc, zc = zc)
 
     A = lu(A)  # LU matrix factorization
+
 
     # initialize time and vector b that stores boundary data (linear system will be Au = b, where b = B*g)
     t = 0
@@ -63,6 +79,7 @@ function main()
     
     u = A \ b # solve linear system with a backsolve to obtain initial displacement u(x, z, 0)
  
+
     # Find z-index δNp corresponding to base of rate-and-state friction zone RSWf
     (mm, δNp) = findmin(abs.(RSWf .- z))
     @assert z[δNp] ≈ RSWf
@@ -91,12 +108,16 @@ function main()
     ψ = RSf0 .+ RSb .* log.(RSV0 .* θ ./ RSDc)
 
 
-    # Set initial condition for index 1 DAE - this is a stacked vector of psi, followed by slip
+     # Set initial condition for index 1 DAE - this is a stacked vector of psi, followed by slip
     ψδ = zeros(δNp + Nz + 1)  #because length(ψ) = δNp,  length(δ) = Nz+1
     ψδ[1:δNp] .= ψ
     ψδ[δNp+1:δNp + Nz + 1] .= δ
 
-    # Set fault station locations (depths) specified in benchmark
+    # Calculate total shear stress at t = 0:
+    τ = τ0 .+ Δτ
+
+    
+# Set fault station locations (depths) specified in benchmark
     stations = [0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 25, 30, 35] # km
 
     # Function that finds the depth-index corresponding to a station location
