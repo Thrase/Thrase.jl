@@ -34,7 +34,7 @@ dz = 0.2
 el_r = 0.6
 el_s = 0.6
 # how many years to simulate
-sim_years = 350
+sim_years = 3000
 # loading rate
 Vp = 1e-9
 # elastcity parameters

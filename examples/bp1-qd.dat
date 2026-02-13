@@ -16,7 +16,7 @@ Nx = 800
 Nz = 800
 #
 # how many years to simulate
-sim_years = 300
+sim_years = 3000
 #
 # loading rate
 Vp = 1e-9
