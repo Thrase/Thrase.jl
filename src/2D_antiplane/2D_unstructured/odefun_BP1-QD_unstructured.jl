@@ -1,5 +1,4 @@
 
-using DifferentialEquations
 using Printf
 using DelimitedFiles
 
@@ -105,7 +104,7 @@ function odefun(dψV, ψδ, p, t)
   show_val = false
   for f = 1:nfaces
     
-    # TODO: fix this to not do friction at depth
+    # TODO: fix this to not do friction at depth (not a bug just doing more work than necessary)
     if FToB[f] == RS_FAULT
       (e1, e2) = FToE[:, f]
       (lf1, lf2) = FToLF[:, f]

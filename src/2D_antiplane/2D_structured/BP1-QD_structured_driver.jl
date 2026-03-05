@@ -5,7 +5,7 @@
 
 using Thrase
 using LinearAlgebra
-using DifferentialEquations
+using OrdinaryDiffEq
 using DiffEqCallbacks
 using DelimitedFiles
 using Dates

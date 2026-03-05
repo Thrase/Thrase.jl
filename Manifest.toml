@@ -2,7 +2,7 @@
 
 julia_version = "1.12.5"
 manifest_format = "2.0"
-project_hash = "333a8a979c2dd8b92f5e1357a287582d53e7a83c"
+project_hash = "b521bc90a2baf76174e2d66cdff07ad189244163"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "f7304359109c768cf32dc5fa2d371565bb63b68a"
@@ -2484,10 +2484,10 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 version = "1.11.0"
 
 [[deps.Thrase]]
-deps = ["Combinatorics", "Compat", "DelimitedFiles", "DiffEqCallbacks", "DifferentialEquations", "Interpolations", "LinearAlgebra", "MeshGrid", "OrdinaryDiffEq", "Plots", "Printf", "PyPlot", "SparseArrays", "SpecialFunctions", "UnicodePlots"]
+deps = ["Combinatorics", "DelimitedFiles", "DiffEqCallbacks", "DifferentialEquations", "Interpolations", "LinearAlgebra", "MeshGrid", "OrdinaryDiffEq", "Plots", "Printf", "PyPlot", "SparseArrays", "SpecialFunctions", "UnicodePlots"]
 path = "."
 uuid = "3917ca59-4720-457e-a139-9f815f130244"
-version = "0.1.0"
+version = "1.0.0"
 
 [[deps.ThreadingUtilities]]
 deps = ["ManualMemory"]

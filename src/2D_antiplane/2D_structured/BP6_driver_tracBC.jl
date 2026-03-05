@@ -5,8 +5,13 @@
 
 using Thrase
 using LinearAlgebra
-using DifferentialEquations
+using OrdinaryDiffEq
 using DelimitedFiles
+
+include("../utils_2D.jl")
+include("ops_BP6.jl")
+include("odefun_BP6.jl")
+
 
 function main()
     
@@ -47,7 +52,7 @@ function main()
     
     ###################################################################### 
     # create finite difference operators on computational domain:
-    (M̃, F, HfI_FT, HfI_G, coord, facecoord, JH, sJ, nx, ny, Hf, HfI, τ) = get_operators_BP6(SBPp, Nr, Ns, μ, Lx, Lz; metrics)
+    (M̃, F, HfI_FT, HfI_G, coord, facecoord, JH, sJ, nx, ny, Hf, HfI, τ) = get_operators_BP6_trac(SBPp, Nr, Ns, μ, Lx, Lz; metrics)
 
     # and factor main matrix with Cholesky
     M = cholesky(Symmetric(M̃))    
@@ -65,6 +70,7 @@ function main()
     # Initialize Darcy Velocity
     q = zeros(Ns+1)
   
+    
     # initialize boundary data on 4 corners of domain:
     # Dirichlet on []
     # bc_Dirichlet = (lf, x, z) -> (2-lf) .* (0 * x .+ 0 .* z) + (lf-1) .* (0 .* x .+ 0 .* z)
@@ -89,7 +95,7 @@ function main()
     bc_Neumann   = (lf, x, z, nx, nz) -> zeros(size(x))
     # modify boundary data vector g with data from four sides:
   
-    bdry_vec_mod_BP6!(g, F, τ, x, z, bc_Dirichlet, bc_Neumann, metrics)
+    bdry_vec_mod_BP6_trac!(g, F, τ, x, z, bc_Dirichlet, bc_Neumann, metrics)
 
 
     # Solve the linear system to get initial displacement vector u:
@@ -199,7 +205,7 @@ function main()
 
   # Set up the ODE problem to be solved, with rhs defined by odefun, 
   # on timespan tspan with initial condition ψδ and parameters odeparam:
-  prob = ODEProblem(odefun_BP6, ψδ, tspan, odeparam)
+  prob = ODEProblem(odefun_BP6_trac, ψδ, tspan, odeparam)
   
   # this function gets called within rhs to enforce additional stability: 
   function stepcheck(_, p, _)
@@ -241,7 +247,7 @@ end
 (S, zf, δNp, pth) = main()
 
 # plot times series of shear stress:
-plot_fault_time_series("slip", pth*"fltst_strk+10.txt")
+plot_fault_time_series("slip", pth*"fltst_strk+00.txt")
 # plot_fault_time_series("V", pth*"fltst_strk+10.txt")
 # plot_fault_time_series("shear_stress", pth*"fltst_strk+10.txt")
 # plot_fault_time_series("darcy_vel", pth*"fltst_strk+10.txt")

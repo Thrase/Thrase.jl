@@ -177,24 +177,29 @@ function locoperator(p, Nr, Ns, μ, metrics=create_metrics(Nr,Ns,μ),
                      crr = metrics.crr,
                      css = metrics.css,
                      crs = metrics.crs)
+  
+  
+  # {{{ read in parameters
   csr = crs
   J = metrics.J
 
-  
+
   Nrp = Nr + 1
   Nsp = Ns + 1
   Np = Nrp * Nsp
+  # }}}
 
-  # Derivative operators in logical space
-
+  # {{{ Create 1D operators in logical space
   (Dr, HrI, Hr, r) = diagonal_sbp_D1(p, Nr; xc = (-1,1))
   (Ds, HsI, Hs, s) = diagonal_sbp_D1(p, Ns; xc = (-1,1))
+  # }}}
 
-  # Identity matrices
+  # {{{ 2D Identity matrices
   Ir = sparse(I, Nrp, Nrp)
   Is = sparse(I, Nsp, Nsp)
+  # }}}
 
-  #{{{ Set up the rr derivative matrix
+  # {{{ Set up the operators in logical space
   ISr0 = Array{Int64,1}(undef,0)
   JSr0 = Array{Int64,1}(undef,0)
   VSr0 = Array{Float64,1}(undef,0)
@@ -253,7 +258,7 @@ function locoperator(p, Nr, Ns, μ, metrics=create_metrics(Nr,Ns,μ),
   @assert SrN ≈ ((sparse(Diagonal(crr[Nrp .+ Nrp*(0:Ns)])) * Hs) ⊗ SN)
  =#
 
-  #{{{ Set up the ss derivative matrix
+  # Set up the ss derivative matrix
   (D2e, S0e, SNe, _, _, Ae, _) = variable_diagonal_sbp_D2(p, Ns, rand(Nsp))
   IAss = Array{Int64,1}(undef,Nrp * length(D2e.nzval))
   JAss = Array{Int64,1}(undef,Nrp * length(D2e.nzval))
@@ -305,13 +310,13 @@ function locoperator(p, Nr, Ns, μ, metrics=create_metrics(Nr,Ns,μ),
   @assert SsN ≈ (SN ⊗ (Hr * sparse(Diagonal(css[Nrp*Ns .+ (1:Nrp)]))))
   =#
 
-  #{{{ Set up the rs and sr derivative matrices
+  #Set up the rs and sr derivative matrices
   Drs = (Is ⊗ Dr) * sparse(1:length(crs), 1:length(crs), view(crs, :)) * (Ds ⊗ Ir)
   Dsr = (Ds ⊗ Ir) * sparse(1:length(csr), 1:length(csr), view(csr, :)) * (Is ⊗ Dr)
-  #}}}
+  # }}}
 
-  #
-  # Boundary point matrices
+
+  # {{{ Boundary point matrices and surface mass matrices 
 
   er0 = sparse([1  ], [1], [1], Nrp, 1)
   erN = sparse([Nrp], [1], [1], Nrp, 1)
@@ -323,7 +328,18 @@ function locoperator(p, Nr, Ns, μ, metrics=create_metrics(Nr,Ns,μ),
   es0T = sparse([1], [1  ], [1], 1, Nsp)
   esNT = sparse([1], [Nsp], [1], 1, Nsp)
 
-
+  # Face lift operators 
+  eRS = (convert(SparseMatrixCSC{Float64, Int64}, kron(Is, er0)),
+       convert(SparseMatrixCSC{Float64, Int64}, kron(Is, erN)),
+       convert(SparseMatrixCSC{Float64, Int64}, kron(es0, Ir)),
+       convert(SparseMatrixCSC{Float64, Int64}, kron(esN, Ir)))
+  # face extraction ops
+  eRST = (convert(SparseMatrixCSC{Float64, Int64}, kron(Is, er0')),
+       convert(SparseMatrixCSC{Float64, Int64}, kron(Is, erN')),
+       convert(SparseMatrixCSC{Float64, Int64}, kron(es0', Ir)),
+       convert(SparseMatrixCSC{Float64, Int64}, kron(esN', Ir)))
+  
+ 
   # Surface mass matrices
   H1 = Hs
   H1I = HsI
@@ -343,6 +359,19 @@ function locoperator(p, Nr, Ns, μ, metrics=create_metrics(Nr,Ns,μ),
 
   H = (Hs, Hs, Hr, Hr)
   HI = (HsI, HsI, HrI, HrI)
+  Hinv = HsI ⊗ HrI
+  
+  # h1 and h2 in A&D are in logical space
+  h1 = Hr[1, 1] 
+  h2 = Hr[Nrp, Nrp] 
+  h3 = Hs[1, 1] 
+  h4 = Hs[Nsp, Nsp] 
+
+  H̃ = Hs ⊗ Hr            # Need this for convergence tests.
+
+  # }}}
+
+  # {{{ Jacobian and Surface Jacobian operators
 
   sJ1 = spdiagm(0 => metrics.sJ[1])
   sJ2 = spdiagm(0 => metrics.sJ[2])
@@ -356,20 +385,11 @@ function locoperator(p, Nr, Ns, μ, metrics=create_metrics(Nr,Ns,μ),
 
 
   J = spdiagm(0 => reshape(metrics.J, Nrp*Nsp))
+  # }}}
 
-  # Face lift operators 
-  eRS = (convert(SparseMatrixCSC{Float64, Int64}, kron(Is, er0)),
-       convert(SparseMatrixCSC{Float64, Int64}, kron(Is, erN)),
-       convert(SparseMatrixCSC{Float64, Int64}, kron(es0, Ir)),
-       convert(SparseMatrixCSC{Float64, Int64}, kron(esN, Ir)))
-  # face extraction ops
-  eRST = (convert(SparseMatrixCSC{Float64, Int64}, kron(Is, er0')),
-       convert(SparseMatrixCSC{Float64, Int64}, kron(Is, erN')),
-       convert(SparseMatrixCSC{Float64, Int64}, kron(es0', Ir)),
-       convert(SparseMatrixCSC{Float64, Int64}, kron(esN', Ir)))
-  
- 
-  # coefficent matrices on each of the four faces
+
+
+  #{{{ Coefficent matrices on each of the four faces
   Crr1 = spdiagm(0 => crr[1, :])
   Crs1 = spdiagm(0 => crs[1, :])
   Csr1 = spdiagm(0 => crs[1, :])
@@ -389,20 +409,23 @@ function locoperator(p, Nr, Ns, μ, metrics=create_metrics(Nr,Ns,μ),
   Crs4 = spdiagm(0 => crs[:, Nsp])
   Csr4 = spdiagm(0 => crs[:, Nsp])
   Crr4 = spdiagm(0 => crr[:, Nsp])
+  # }}}
  
+  # {{{ discrete boundary traction operators in logical space:
+  T_1 = -Sr0 - ((Crs1*Ds) ⊗ Ir)
+  T_2 = SrN + ((Crs2*Ds) ⊗ Ir)
+  T_3 = -(Is ⊗ (Csr3*Dr)) - Ss0
+  T_4 = (Is ⊗ (Csr4*Dr)) + SsN
+  T = (T_1, T_2, T_3, T_4)  
+  TT = (T_1', T_2', T_3', T_4')
+  # }}}
+    
 
-  Hinv = HsI ⊗ HrI
-  # penalty matrices:
+
+  # {{{ Dirichlet BC penalties
+
   β = 10
   d = 2 # dimension
-
-  # h1 and h2 in A&D are in logical space
-  
-  h1 = Hr[1, 1] 
-  h2 = Hr[Nrp, Nrp] 
-  h3 = Hs[1, 1] 
-  h4 = Hs[Nsp, Nsp] 
-
   
   #  Z_1 = β * (d/h1) * (Is ⊗ (sJ1_J1)) * (Is ⊗ Crr1) # TODO: check; this is al messed up
   #  Z_2 = β * (d/h1) * (Is ⊗ (sJ2_J2)) * (Is ⊗ Crr2)
@@ -416,28 +439,21 @@ function locoperator(p, Nr, Ns, μ, metrics=create_metrics(Nr,Ns,μ),
   sJZ_4 = β * (d ./ h4) * (Css4 ⊗ Ir)
   sJZ = (sJZ_1, sJZ_2, sJZ_3, sJZ_4)
 
-  # discrete boundary traction operators in logical space:
-  T_1 = -Sr0 - ((Crs1*Ds) ⊗ Ir)
-  T_2 = SrN + ((Crs2*Ds) ⊗ Ir)
-  T_3 = -(Is ⊗ (Csr3*Dr)) - Ss0
-  T_4 = (Is ⊗ (Csr4*Dr)) + SsN
-  T = (T_1, T_2, T_3, T_4)  
-  TT = (T_1', T_2', T_3', T_4')
-    
   # Dirichlet faces:
   dSAT_1 = Hinv * (T_1 .- sJZ_1)' * eRS[1] * H1 * eRS[1]'   
   dSAT_2 = Hinv * (T_2 .- sJZ_2)' * eRS[2] * H2 * eRS[2]'  
   dSAT_3 = Hinv * (T_3 .- sJZ_3)' * eRS[3] * H3 * eRS[3]'   
   dSAT_4 = Hinv * (T_4 .- sJZ_4)' * eRS[4] * H4 * eRS[4]'  
   dSAT = (dSAT_1, dSAT_2, dSAT_3, dSAT_4)
+  # }}}
 
-  # Neumann faces:
+  # {{{ Neumann faces:
   nSAT_1 = -Hinv * eRS[1] * H1 * eRS[1]' * T_1      
   nSAT_2 = -Hinv * eRS[2] * H2 * eRS[2]' * T_2 
   nSAT_3 = -Hinv * eRS[3] * H3 * eRS[3]' * T_3      
   nSAT_4 = -Hinv * eRS[4] * H4 * eRS[4]' * T_4  
   nSAT = (nSAT_1, nSAT_2, nSAT_3, nSAT_4)     
-
+  # }}}
 
    # Interfaces (these are missing the face extraction and latter traction ops on purpose): 
   #  iSAT_1 = Hinv * (0.5*T_1 .- Z_1)' * eRS[1] * H1 * eRS[1]' - 0.5*Hinv * eRS[1] * H1 * eRS[1]' * T_1      
@@ -445,8 +461,7 @@ function locoperator(p, Nr, Ns, μ, metrics=create_metrics(Nr,Ns,μ),
   #  iSAT_3 = Hinv * (0.5*T_3 .- Z_3)' * eRS[3] * H3 * eRS[3]' - 0.5*Hinv * eRS[3] * H3 * eRS[3]' * T_3      
   #  iSAT_4 = Hinv * (0.5*T_4 .- Z_4)' * eRS[4] * H4 * eRS[4]' - 0.5*Hinv * eRS[4] * H4 * eRS[4]' * T_4  
   
-  
-
+  # {{{ Interface Penalties
   # Z' penalty parameters (for interface Dirichlet conditions) in logical space:
   IsJZ_1 = β * (d ./ (4*h1)) * (Is ⊗ Crr1) 
   IsJZ_2 = β * (d ./ (4*h2)) * (Is ⊗ Crr2)
@@ -467,9 +482,9 @@ function locoperator(p, Nr, Ns, μ, metrics=create_metrics(Nr,Ns,μ),
   tSAT_3 = -0.5 * Hinv * eRS[3] * H3
   tSAT_4 = -0.5 * Hinv * eRS[4] * H4
   tSAT = (tSAT_1, tSAT_2, tSAT_3, tSAT_4) 
+  # }}}
   
-  
-  ########  BELOW ARE FOR RHS VECTOR ########
+  # {{{ RHS VECTOR
   # boundary data operators for Dirichlet faces
   dB1 = Hinv * (T_1 .- sJZ_1)' * eRS[1] * H1   
   dB2 = Hinv * (T_2 .- sJZ_2)' * eRS[2] * H2  
@@ -492,14 +507,13 @@ function locoperator(p, Nr, Ns, μ, metrics=create_metrics(Nr,Ns,μ),
    iB3 = Hinv * (0.5*T_3 .- sJZ_3)' * eRS[3] * H3
    iB4 = Hinv * (0.5*T_4 .- sJZ_4)' * eRS[4] * H4  
    iB = (iB1, iB2, iB3, iB4)
+  # }}}
 
-  # Build operator for element local
+  # {{{ Build operator for element local
   A = Drr + Dss + Drs + Dsr
+  # }}}
 
-  # Build operators to connect interface
-  # B = spzeros(size(A))
-
-  # Modify operator to handle the boundary conditions
+  # {{{ Build operators to connect interface (modify operator to handle the boundary conditions)
   bctype=(BC_LOCKED_INTERFACE, BC_LOCKED_INTERFACE, BC_LOCKED_INTERFACE, BC_LOCKED_INTERFACE)
   
   for lf = 1:4
@@ -514,11 +528,9 @@ function locoperator(p, Nr, Ns, μ, metrics=create_metrics(Nr,Ns,μ),
      end
   end
   bctype=(LFToB[1], LFToB[2], LFToB[3], LFToB[4])
+  # }}}
 
-
-  H̃ = Hs ⊗ Hr            # Need this for convergence tests.
-
-
+ 
   return (A, dB, nB, iB, eRST, tSAT, H̃, T, TT, eRS, J, coord = metrics.coord, IsJZ, Hinv, H,
   facecoord = metrics.facecoord, 
   sJ = metrics.sJ,
@@ -842,7 +854,7 @@ function global_operator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
                                                                       + 0.5 * lop[ep].Hinv * lop[ep].TT[fp] * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] + 
                                                                       -  c * 0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] * lop[ep].T[fp])
 
-      # If face orientation on plus side does not match minus side, then flip:
+      # If face orientation on plus side does not match minus side, then flip
       Np = (fm <= 2 ? Ns[em]+1 : Nr[em]+1) # Set Np to be either Nr or Ns, depending on face
       if EToO[fp, ep]                     # orientation matches
         R = sparse(I, Np, Np)         

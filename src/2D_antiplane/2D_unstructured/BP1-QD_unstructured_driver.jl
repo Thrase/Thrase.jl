@@ -253,6 +253,7 @@ function main()
     end
     end
 
+   
     # Set pre-stress according to benchmark description
     τ0 = fill(σn * RSamax * asinh(RSVinit / (2 * RSV0) *
                                 exp.((RSf0 + RSb * log.(RSV0 / RSVinit)) /
@@ -301,7 +302,12 @@ function main()
     stations = setupfaultstations(stations_locations, lop, FToB, FToE, FToLF,
                                 (RS_FAULT, VP_FAULT))
 
+    fault = setupfaultcoord(lop, FToB, FToE, FToLF,
+                                (RS_FAULT, VP_FAULT)) 
 
+
+   
+  
     # set up parameters sent to the right hand side of the DAE:
     odeparam = (reject_step = [false],
     Vp=Vp,
@@ -350,12 +356,12 @@ function main()
     end
             
     # Set call-back function so that fields are written to text file after successful time step only.
-    cb = SavingCallback((ψδ, t, i)->savefaultstation(ψδ, t, i, stations,
+    cb = SavingCallback((ψδ, t, i)->savedatafields(ψδ, t, i, stations, fault,
                                                     FToδstarts, odeparam,
-                                                    pth*"BP1_N_$(Nr[1])_$(Lx)", 10year_seconds),
+                                                    pth*"BP1_N_$(Nr[1])_$(Lx)", pth*"Slip_BP1_N_$(Nr[1])_$(Lx)",  10year_seconds),
                         SavedValues(Float64, Float64))
 
-   
+    
     # Solve DAE using Tsit5(), an adaptive Runge-Kutta method
     sol = solve(prob, Tsit5(); isoutofdomain=stepcheck, dt=0.1*year_seconds,
                 abstol = 1e-9, reltol = 1e-9, save_everystep=false, #gamma = 0.05,

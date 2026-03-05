@@ -1,12 +1,58 @@
+const year_seconds = 31556926
+const sim_years = 2
+global const ctr = Ref{Int64}(1) 
 
-# using OrdinaryDiffEq
-# using DiffEqCallbacks
-# using Printf
-# using Plots
-# using DelimitedFiles
  using SpecialFunctions
 # EXAMINE LINES ~[166], [266], AND [316] TO SWITCH BETWEEN AGING LAW AND SLIP LAW
 
+function rateandstate(V, psi, σn, ϕ, η, a, V0)
+    Y = (1 ./ (2 .* V0)) .* exp.(psi ./ a)
+    f = a .* asinh.(V .* Y)
+    dfdV  = a .* (1 ./ sqrt.(1 + (V .* Y).^2)) .* Y
+    dPdV = 0  #?
+  
+    g    = σn.* f    + η .* V - ϕ
+    dgdV = σn.* dfdV - dPdV .* f + η
+    (g, dgdV)
+  end
+  
+  function newtbndv(func, xL, xR, x; ftol = 1e-6, maxiter = 500, minchange=0,
+                    atolx = 1e-4, rtolx = 1e-4)
+    (fL, _) = func(xL)
+    (fR, _) = func(xR)
+    if fL .* fR > 0
+      return (typeof(x)(NaN), typeof(x)(NaN), -maxiter)
+    end
+  
+    (f, df) = func(x)
+    dxlr = xR - xL
+  
+    for iter = 1:maxiter
+      dx = -f / df
+      x  = x + dx
+  
+      if x < xL || x > xR || abs(dx) / dxlr < minchange
+        x = (xR + xL) / 2
+        dx = (xR - xL) / 2
+      end
+  
+      (f, df) = func(x)
+  
+      if f * fL > 0
+        (fL, xL) = (f, x)
+      else
+        (fR, xR) = (f, x)
+      end
+      dxlr = xR - xL
+  
+      if abs(f) < ftol && abs(dx) < atolx + rtolx * (abs(dx) + abs(x))
+        return (x, f, iter)
+      end
+    end
+    return (x, f, -maxiter)
+  end
+  
+  
 function odefun_BP6(dψV, ψδ, p, t)
   
   # unpack structure of parameters:

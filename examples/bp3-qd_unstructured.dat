@@ -1,11 +1,11 @@
 # Input parameter file. 
-# Solves the SEAS benchmark problem BP1-QD:
-# https://strike.scec.org/cvws/seas/download/SEAS_BP1_QD.pdf
+# Solves the SEAS benchmark problem BP3:
+# https://strike.scec.org/cvws/seas/download/SEAS_BP3.pdf
 #
 # path to store output
-pth =./output/bp1-qd-unstructured/
+pth =./output/bp3-unstructured/
 # name of mesh file:
-meshfile=BP1_v1.inp
+meshfile=BP3_v1.inp
 # details of output data:
 # number of grid points in each dimension ON EACH ELEMENT/BLOCK
 # make sure to resolve h* and l_b; should be written as integer.
@@ -13,13 +13,18 @@ Nx = 10
 Nz = 10
 #
 # how many years to simulate
-sim_years = 3000
+sim_years = 1500
 #
 # loading rate
 Vp = 1e-9
 #
+# fault slip rate 
+# VL = 1e-9
+# dip angle 
+# 30
 # elastcity parameters
 ρ = 2.670
+ν = 0.25
 cs = 3.464
 σn = 50
 #
