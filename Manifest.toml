@@ -2401,7 +2401,7 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 version = "1.11.0"
 
 [[deps.Thrase]]
-deps = ["Compat", "DelimitedFiles", "DiffEqCallbacks", "DifferentialEquations", "Interpolations", "LinearAlgebra", "MeshGrid", "OrdinaryDiffEq", "Plots", "Printf", "PyPlot", "SparseArrays", "SpecialFunctions", "UnicodePlots"]
+deps = ["Combinatorics", "Compat", "DelimitedFiles", "DiffEqCallbacks", "DifferentialEquations", "Interpolations", "LinearAlgebra", "MeshGrid", "OrdinaryDiffEq", "Plots", "Printf", "PyPlot", "SparseArrays", "SpecialFunctions", "UnicodePlots"]
 path = "."
 uuid = "3917ca59-4720-457e-a139-9f815f130244"
 version = "0.1.0"
