@@ -276,6 +276,8 @@ function main()
         sinh.((τ0 .- η .* RSVinit) ./ (RSa .* σn))) .- RSf0 ./ RSb)
     # Initialize psi version of state variable    
     ψ = RSf0 .+ RSb .* log.(RSV0 .* θ ./ RSDc)
+    # Set initial velocity (this cannot be set independently, it must be consistent with θ and ψ)
+    V_0 = Vp .* ones(δNp)
 
     # Calculate total shear stress at t = 0:
     τ = τ0 + Δτ
@@ -287,7 +289,6 @@ function main()
 
     # Set fault station locations (depths) specified in benchmark
     stations_locations = [0 0
-                        0 -0.05
                         0 -2.5
                         0 -5
                         0 -7.5
@@ -298,6 +299,7 @@ function main()
                         0 -20
                         0 -25
                         0 -30
+                        0 -35
                         ]
     stations = setupfaultstations(stations_locations, lop, FToB, FToE, FToLF,
                                 (RS_FAULT, VP_FAULT))
@@ -356,14 +358,14 @@ function main()
     end
             
     # Set call-back function so that fields are written to text file after successful time step only.
-    cb = SavingCallback((ψδ, t, i)->savedatafields(ψδ, t, i, stations, fault,
+    cb = SavingCallback((ψδ, t, i)->savedatafields(ψδ, t, i, stations, fault, V_0,
                                                     FToδstarts, odeparam,
                                                     pth*"BP1_N_$(Nr[1])_$(Lx)", pth*"Slip_BP1_N_$(Nr[1])_$(Lx)",  10year_seconds),
                         SavedValues(Float64, Float64))
 
     
     # Solve DAE using Tsit5(), an adaptive Runge-Kutta method
-    sol = solve(prob, Tsit5(); isoutofdomain=stepcheck, dt=0.1*year_seconds,
+    sol = solve(prob, Tsit5(); isoutofdomain=stepcheck, dt=100,
                 abstol = 1e-9, reltol = 1e-9, save_everystep=false, #gamma = 0.05,
                 internalnorm=(x, _)->norm(x, Inf), callback=cb)
                 

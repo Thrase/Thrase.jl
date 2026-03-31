@@ -96,7 +96,7 @@ function odefun(dψV, ψδ, p, t)
   V  = @view dψV[ δNp .+ (1:δNp) ]
 
   dψ .= 0 # initialize values to 0
-  V  .= 0 # initialize values to 0
+  V  .= 0 # initialize values to 0; this is also initial guess for Newton. TODO: change to previous time step
 
   # Update Δτ (the shear stress due to quasi-static deformation):
   Δτ .= 0

@@ -213,13 +213,13 @@ function read_params_planestrain(f_name)
       end
   end
   close(f)
-    params = Vector{Any}(undef, 23)
+    params = Vector{Any}(undef, 21)
   params[1] = tmp_params[1]
   params[2] = tmp_params[2]
     for i = 3:length(tmp_params)-1
       params[i] = parse(Float64, tmp_params[i])
     end
-    params[23] = parse(Int64, tmp_params[23])
+    params[21] = parse(Int64, tmp_params[21])
   return params
 end
 
@@ -528,7 +528,7 @@ function setupfaultstations(locations, lop, FToB, FToE, FToLF, faults)
                       numstations))
 end
 
-function savedatafields(ψδ, t, i, stations, fault, FToδstarts, p, base_name="", slipbase_name = "",
+function savedatafields(ψδ, t, i, stations, fault, V_0, FToδstarts, p, base_name="", slipbase_name = "",
                          tdump=100)
   Vmax = 0.0
   T = Float64
@@ -536,24 +536,26 @@ function savedatafields(ψδ, t, i, stations, fault, FToδstarts, p, base_name="
   if isdefined(i, :fsallast)
     δNp = div(length(ψδ), 2)
     dψV = i.fsallast
+
+    if t == 0
+      V = V_0
+    else
+      V  = @view dψV[δNp .+ (1:δNp) ]
+    end
     
-    V  = @view dψV[δNp .+ (1:δNp) ]
-    
-  
     Vmax = maximum(abs.(extrema(V)))
     Vmax = Vmax[1]
 
     tlast = length(stations.t) > 0 ? stations.t[end] : -2year_seconds # if stations.t not empty, set tlast = stations.t[end]; otherwise set tlast = -2year_seconds
     tnext = tlast + (Vmax > 1e-3 ? 0.1 : year_seconds) # if Vmax > 1e-3 then add 0.1 to tlast; otherwise add year_seconds
 
-    # the following is going to append lists, but not write them to file yet. 
+    # Append lists, but don't write them to file (yet). 
     if (t >= tnext) #check if the time step taken is bigger that 0.1 s (coseismic) or 1 year (aseismic). If it is, then save data by appending lists.
       ψ  = @view ψδ[        (1:δNp) ]
       δ  = @view ψδ[ δNp .+ (1:δNp) ]
       dψ = @view dψV[       (1:δNp) ]
 
       tlast = tnext
-      #@show (t/year_seconds, Vmax)
       
       push!(fault.t, t)
       push!(fault.slip, δ)
@@ -571,7 +573,7 @@ function savedatafields(ψδ, t, i, stations, fault, FToδstarts, p, base_name="
         push!(stations.data[s].τ, p.τ[n] - p.η * V[n])
       end
       println("took a step")
-     
+      
       if t == 0
         println("saving data with basename = $base_name")
 
@@ -603,7 +605,7 @@ function savedatafields(ψδ, t, i, stations, fault, FToδstarts, p, base_name="
         end
 
         for s = 1:numstations
-          open("$(base_name)$(stations.xs[s])_$(stations.ys[s]).dat", "w") do f # This will overwrite the file everytime (it's not appending it!)
+          open("$(base_name)$(round(stations.xs[s], digits = 2))_$(round(stations.ys[s], digits=2)).dat", "w") do f # This will overwrite the file everytime (it's not appending it!)
             write(f, "t slip slip_rate shear_stress state\n")
             t = stations.t
             δ = stations.data[s].δ
@@ -651,7 +653,7 @@ function savedatafields(ψδ, t, i, stations, fault, FToδstarts, p, base_name="
         end
 
         for s = 1:numstations
-          open("$(base_name)$(stations.xs[s])_$(stations.ys[s]).dat", "a") do f # This will overwrite the file everytime (it's not appending it!)
+          open("$(base_name)$(round(stations.xs[s], digits=2))_$(round(stations.ys[s], digits=2)).dat", "a") do f # This will overwrite the file everytime (it's not appending it!)
             t = stations.t
             δ = stations.data[s].δ
             V = stations.data[s].V

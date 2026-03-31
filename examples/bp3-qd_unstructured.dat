@@ -1,11 +1,11 @@
 # Input parameter file. 
-# Solves the SEAS benchmark problem BP3:
+# Solves the SEAS benchmark problem BP3 (60 degree thrust version):
 # https://strike.scec.org/cvws/seas/download/SEAS_BP3.pdf
 #
 # path to store output
 pth =./output/bp3-unstructured/
 # name of mesh file:
-meshfile=BP3_v1.inp
+meshfile=BP9_2D_90d_v1.inp
 # details of output data:
 # number of grid points in each dimension ON EACH ELEMENT/BLOCK
 # make sure to resolve h* and l_b; should be written as integer.
@@ -13,7 +13,7 @@ Nx = 10
 Nz = 10
 #
 # how many years to simulate
-sim_years = 1500
+sim_years = 200
 #
 # loading rate
 Vp = 1e-9
@@ -21,7 +21,7 @@ Vp = 1e-9
 # fault slip rate 
 # VL = 1e-9
 # dip angle 
-# 30
+psi = 90
 # elastcity parameters
 ρ = 2.670
 ν = 0.25
@@ -32,7 +32,7 @@ cs = 3.464
 RSamin = 0.01
 RSamax = 0.025
 RSb = 0.015
-RSDc = 0.008
+RSDc = 0.032
 RSf0 = 0.6
 RSV0 = 1e-6
 RSVinit = 1e-9

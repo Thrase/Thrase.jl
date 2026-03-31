@@ -9,8 +9,8 @@ meshfile=BP1_v1.inp
 # details of output data:
 # number of grid points in each dimension ON EACH ELEMENT/BLOCK
 # make sure to resolve h* and l_b; should be written as integer.
-Nx = 10
-Nz = 10
+Nx = 80
+Nz = 80
 #
 # how many years to simulate
 sim_years = 3000
