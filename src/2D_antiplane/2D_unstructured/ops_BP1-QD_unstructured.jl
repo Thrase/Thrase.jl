@@ -432,7 +432,7 @@ function locoperator(p, Nr, Ns, μ, metrics=create_metrics(Nr,Ns,μ),
   #  Z_3 = β * (d/h2) * ((sJ3_J3) ⊗ Ir) * (Css3 ⊗ Ir) # TODO: check
   #  Z_4 = β * (d/h2) * ((sJ4_J4) ⊗ Ir) * (Css4 ⊗ Ir)
 
-  # Z' penalty parameters (for Dirichlet BC) in logical space:
+  # Z' penalty parameters (for Dirichlet BC) in logical space: # TODO below are not right - see plane strain ops and correct.
   sJZ_1 = β * (d ./ h1) * (Is ⊗ Crr1) 
   sJZ_2 = β * (d ./ h2) * (Is ⊗ Crr2)
   sJZ_3 = β * (d ./ h3) * (Css3 ⊗ Ir) 

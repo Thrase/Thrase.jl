@@ -198,7 +198,7 @@ end
 
 
 # example of how to plot slip contours (uncomment if desired):
-# plot_slip(pth*"slip.dat")
+# plot_slip(pth*"slip.dat", headerlines=0)
 
 # examples of how ot plot times series of shear stress:
 # plot_fault_time_series("slip", pth*"fltst_strk000.txt")

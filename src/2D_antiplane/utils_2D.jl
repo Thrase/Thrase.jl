@@ -44,11 +44,15 @@ end
 
 # plot_slip will plot slip contours from devol.txt - every 5 years in blue during interseismic, 
 # every 1 second in red during coseismic
-function plot_slip(filename)
+function plot_slip(filename; headerlines=1, vert_limits = (-40, 0))
 
-  grid = readdlm(filename, Float64, skipstart=1)
+  grid = readdlm(filename, Float64, skipstart=headerlines)
   sz = size(grid)
   flt_loc = grid[1,3:end]
+  if flt_loc[end] > 0
+    flt_loc = -flt_loc
+  end
+
   T = grid[2:sz[1],1]
   maxV = grid[2:end, 2]
   slip = grid[2:sz[1], 3:sz[2]]
@@ -113,6 +117,7 @@ function plot_slip(filename)
 
       plt.xlabel("Cumulative Slip (m)");
       plt.ylabel("Depth (km)");
+      plt.ylim(vert_limits)
 end
 
 
