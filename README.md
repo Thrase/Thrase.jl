@@ -81,8 +81,16 @@ To run the code for <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP6
 
 ```
 localARGS = ["examples/bp6.dat"]
-include("src/2D_structured/BP6_driver_dispBC.jl");
+include("src/2D_antiplane/2D_structured/BP6_driver_dispBC.jl");
 
+
+```
+
+To run the code for a simplified version (full version coming soon) of BP3 - 30 degree dipping fault:
+
+```
+localARGS = ["examples/bp3-qd-unstructured.dat"]
+include("src/2D-planestrain/2D_unstructured/BP3-QD_2block_driver.jl");
 
 ```
 
