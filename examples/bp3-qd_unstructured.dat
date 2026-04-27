@@ -5,15 +5,15 @@
 # path to store output
 pth =./output/bp3-unstructured/
 # name of mesh file:
-meshfile=BP9_2D_90d_v1.inp
+meshfile=BP9_2D_90d_v5.inp
 # details of output data:
 # number of grid points in each dimension ON EACH ELEMENT/BLOCK
 # make sure to resolve h* and l_b; should be written as integer.
-Nx = 10
-Nz = 10
+Nx = 100
+Nz = 100
 #
 # how many years to simulate
-sim_years = 200
+sim_years = 800
 #
 # loading rate
 Vp = 1e-9
@@ -21,7 +21,7 @@ Vp = 1e-9
 # fault slip rate 
 # VL = 1e-9
 # dip angle 
-psi = 90
+psi = 30
 # elastcity parameters
 ρ = 2.670
 ν = 0.25

@@ -2,8 +2,9 @@ using PyPlot
 using SparseArrays
 using LinearAlgebra
 using DelimitedFiles
+using DifferentialEquations
 using Interpolations
-
+#using UnicodePlots
 
 function interp1(xpt, ypt, x)
 
@@ -120,7 +121,6 @@ function plot_slip(filename; headerlines=1, vert_limits = (-40, 0))
       plt.ylim(vert_limits)
 end
 
-
 function plot_global(field, filename)
 
   @show filename
@@ -218,13 +218,13 @@ function read_params_planestrain(f_name)
       end
   end
   close(f)
-    params = Vector{Any}(undef, 21)
+    params = Vector{Any}(undef, 22)
   params[1] = tmp_params[1]
   params[2] = tmp_params[2]
     for i = 3:length(tmp_params)-1
       params[i] = parse(Float64, tmp_params[i])
     end
-    params[21] = parse(Int64, tmp_params[21])
+    params[22] = parse(Int64, tmp_params[22])
   return params
 end
 
@@ -392,6 +392,7 @@ function read_inp_2d(T, S, filename::String; bc_map=1:10000)
   inp_to_zorder = [3,  2, 4, 1]
   while linenum > 0
     foo = split(lines[linenum], r"[^0-9]", keepempty=false)
+    @show foo
     (bc, face) = try
       (parse(T, foo[1]),
        parse(T, foo[2]))
@@ -457,6 +458,8 @@ function better_plot_solution(u, nelems, vstarts, Nr, Ns, lop)
      ue = reshape(u[vstarts[e]:vstarts[e+1]-1], Nr[e]+1, Ns[e]+1)
      ax.plot_surface(lop[e].coord[1], lop[e].coord[2], ue)
    end
+  xlabel("x")
+  ylabel("y")
   plt.show()
 end
 
@@ -533,34 +536,55 @@ function setupfaultstations(locations, lop, FToB, FToE, FToLF, faults)
                       numstations))
 end
 
-function savedatafields(ψδ, t, i, stations, fault, V_0, FToδstarts, p, base_name="", slipbase_name = "",
+function savedatafields(ψδ, t, i, stations, fault,  V_0, FToδstarts, p, base_name="", slipbase_name = "",
                          tdump=100)
   Vmax = 0.0
   T = Float64
+  
 
+   
   if isdefined(i, :fsallast)
-    δNp = div(length(ψδ), 2)
+    δNp = div(length(ψδ), 3)
     dψV = i.fsallast
 
-    if t == 0
+     if t == 0
       V = V_0
     else
-      V  = @view dψV[δNp .+ (1:δNp) ]
+      V  = @view dψV[1*δNp .+ (1:δNp) ]
     end
     
+  
     Vmax = maximum(abs.(extrema(V)))
     Vmax = Vmax[1]
+   
+
+    ### delerte when done debugging:
+      ψ  = @view ψδ[        (1:δNp) ]
+      δ  = @view ψδ[ δNp .+ (1:δNp) ] 
+      δ2  = @view ψδ[ 2*δNp .+ (1:δNp) ] 
+      dψ = @view dψV[       (1:δNp) ]
+
+      # @show (ψ[1], p.σ[1], p.τ[1], V[1])
+    ###
+   
+    if length(fault.slip[:]) != 0
+     clf()
+     plt.scatter(fault.coords[:, 2], δ)
+    end
+  
 
     tlast = length(stations.t) > 0 ? stations.t[end] : -2year_seconds # if stations.t not empty, set tlast = stations.t[end]; otherwise set tlast = -2year_seconds
     tnext = tlast + (Vmax > 1e-3 ? 0.1 : year_seconds) # if Vmax > 1e-3 then add 0.1 to tlast; otherwise add year_seconds
 
-    # Append lists, but don't write them to file (yet). 
+    # the following is going to append lists, but not write them to file yet. 
     if (t >= tnext) #check if the time step taken is bigger that 0.1 s (coseismic) or 1 year (aseismic). If it is, then save data by appending lists.
       ψ  = @view ψδ[        (1:δNp) ]
-      δ  = @view ψδ[ δNp .+ (1:δNp) ]
+      δ  = @view ψδ[ δNp .+ (1:δNp) ] 
+      δ2  = @view ψδ[ 2*δNp .+ (1:δNp) ] 
       dψ = @view dψV[       (1:δNp) ]
 
       tlast = tnext
+      #@show (t/year_seconds, Vmax)
       
       push!(fault.t, t)
       push!(fault.slip, δ)
@@ -578,8 +602,10 @@ function savedatafields(ψδ, t, i, stations, fault, V_0, FToδstarts, p, base_n
         push!(stations.data[s].τ, p.τ[n] - p.η * V[n])
       end
       println("took a step")
-      
+  
+
       if t == 0
+        
         println("saving data with basename = $base_name")
 
         open("$(slipbase_name).dat", "w") do f # This will overwrite the file everytime (it's not appending it!)
@@ -610,7 +636,7 @@ function savedatafields(ψδ, t, i, stations, fault, V_0, FToδstarts, p, base_n
         end
 
         for s = 1:numstations
-          open("$(base_name)$(round(stations.xs[s], digits = 2))_$(round(stations.ys[s], digits=2)).dat", "w") do f # This will overwrite the file everytime (it's not appending it!)
+          open("$(base_name)$(round(stations.xs[s],digits=2))_$(round(stations.ys[s],digits=2)).dat", "w") do f # This will overwrite the file everytime (it's not appending it!)
             write(f, "t slip slip_rate shear_stress state\n")
             t = stations.t
             δ = stations.data[s].δ
@@ -642,7 +668,7 @@ function savedatafields(ψδ, t, i, stations, fault, V_0, FToδstarts, p, base_n
         ceil((stations.t[end] / tdump)) > ceil((stations.t[end-1] / tdump)) # if length(t) == 1 or if tdump = 10years have passed, dump/append data disk and reset lists to length 0
         println("saving data with basename = $base_name")
 
-        open("$(slipbase_name).dat", "a") do f # This will overwrite the file everytime (it's not appending it!)
+        open("$(slipbase_name).dat", "a") do f 
           
           t = fault.t 
           Vmaxvec = fault.Vmax
@@ -658,7 +684,7 @@ function savedatafields(ψδ, t, i, stations, fault, V_0, FToδstarts, p, base_n
         end
 
         for s = 1:numstations
-          open("$(base_name)$(round(stations.xs[s], digits=2))_$(round(stations.ys[s], digits=2)).dat", "a") do f # This will overwrite the file everytime (it's not appending it!)
+          open("$(base_name)$(round(stations.xs[s],digits=2))_$(round(stations.ys[s], digits=2)).dat", "a") do f 
             t = stations.t
             δ = stations.data[s].δ
             V = stations.data[s].V
@@ -733,7 +759,7 @@ function savefaultstation(ψδ, t, i, stations, FToδstarts, p, base_name="",
         push!(stations.data[s].τ, p.τ[n] - p.η * V[n])
       end
       println("took a step")
-      #println(stations.t)
+      println(stations.t)
       # if length(t) == 1 or if tdump = 10years have passed, dump data to file
       if length(stations.t) == 1 ||
         ceil((stations.t[end] / tdump)) > ceil((stations.t[end-1] / tdump))
