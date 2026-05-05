@@ -20,6 +20,7 @@ function odefun(dψV, ψδ, p, t)
   EToO = p.EToO
   FToB = p.FToB
   FToδstarts = p.FToδstarts
+  EToDomain = p.EToDomain
   b = p.b
   u = p.u
   τ = p.τ
@@ -35,6 +36,7 @@ function odefun(dψV, ψδ, p, t)
   RSDc = p.RSDc
   RSf0 = p.RSf0
   Lx = p.Lx
+ fault_nodes = p.fault_nodes
 
   
 
@@ -42,11 +44,20 @@ function odefun(dψV, ψδ, p, t)
   nfaces = size(FToE, 2)
 
 
-  creep(x, y, t) = (x ./ Lx) .* (Vp/2) .* t
-  bc_Dirichlet = (lf, x, y, e, δ, t) -> creep(x,y,t)
-  bc_Neumann   = (lf, x, y, nx, ny, e, δ, t) -> zeros(size(x))
+    function creep(x,y,t, e, EToDomain)
+        if EToDomain[e] == 1 # left hand side of fault
+            return -(Vp/2) .* t  .+ 0 .* x .+ 0 .* y
+        elseif EToDomain[e] == 2
+            return (Vp/2) .* t .+ 0 .* x .+ 0 .* y
+        else
+            error("shouldn't get here")
+        end       
+    end
+
+  bc_Dirichlet = (lf, x, y, e, δ, t, EToDomain) -> creep(x,y,t,e,EToDomain)
+  bc_Neumann   = (lf, x, y, nx, ny, e, δ, t, EToDomain) -> zeros(size(x))
   
-  in_jump      = (lf, x, y, e, δ, t) -> begin
+  in_jump      = (lf, x, y, e, δ, t, EToDomain) -> begin
     f = EToF[lf, e]
     if EToS[lf, e] == 1
       if EToO[lf, e]
@@ -84,7 +95,7 @@ function odefun(dψV, ψδ, p, t)
   b .= 0
   # fill in boundary data into b
   for e = 1:nelems
-    loc_bdry_vec_v2!((@view b[vstarts[e]:vstarts[e+1]-1]), lop[e], neighborZ[e], FToB[EToF[:,e]], EToF, FToE, FToLF, bc_Dirichlet, bc_Neumann, in_jump, (e, δ, t))
+    loc_bdry_vec_v2!((@view b[vstarts[e]:vstarts[e+1]-1]), lop[e], neighborZ[e], FToB[EToF[:,e]], EToF, FToE, FToLF, bc_Dirichlet, bc_Neumann, in_jump, (e, δ, t, EToDomain))
   end
 
 
@@ -112,13 +123,22 @@ function odefun(dψV, ψδ, p, t)
       urng1 = vstarts[e1]:(vstarts[e1+1]-1)
       urng2 = vstarts[e2]:(vstarts[e2+1]-1)
 
-      y1 = computetraction(lop[e1], lf1, u[urng1])
-   
-      y2 = computetraction(lop[e2], lf2, u[urng2])
+      nxf1 = lop[e1].nx[lf1]
+      nxf2 = lop[e2].nx[lf2]
 
-      #@views Δτ[δrng] .= -(y1 .+ y2) ./ 2
-      @views Δτ[δrng] .= y1
-    
+      y1 = computetraction(lop[e1], lf1, u[urng1])
+      y2 = computetraction(lop[e2], lf2, u[urng2])
+     
+      Δτ1 = nxf1 .* y1   
+      Δτ2 = nxf2 .* y2
+
+      # compute traction on fault as average of both sides, map to fault orientation:
+      if EToO[lf2, e2]
+        @views Δτ[δrng] .= (Δτ1 .+ Δτ2) ./ 2
+      else
+        @views Δτ[δrng] .= (Δτ1 .+ Δτ2[end:-1:1]) ./ 2 
+      end
+        
       for n = 1:length(δrng)
         δn = δrng[n]
         τ[δn] = Δτ[δn] + τ0[δn]
@@ -133,8 +153,8 @@ function odefun(dψV, ψδ, p, t)
         (Vnew, ~, iter) = newtbndv((V) -> rateandstate(V, ψ[δn], σn,
                                                        τ[δn], η, RSa[δn],
                                                        RSV0),
-                                   VL, VR, Vn; atolx=1e-12, rtolx=1e-12,
-                                   ftol=1e-12)
+                                   VL, VR, Vn; atolx=1e-9, rtolx=1e-9,
+                                   ftol=1e-9)
         if show_val
           show_val = false
           @show (ψ[δn], σn[δn], τ[δn], η, RSa[δn], RSV0)
@@ -167,19 +187,28 @@ function odefun(dψV, ψδ, p, t)
       δrng = FToδstarts[f]:(FToδstarts[f+1]-1)
       urng1 = vstarts[e1]:(vstarts[e1+1]-1)
       urng2 = vstarts[e2]:(vstarts[e2+1]-1)
+      nxf1 = lop[e1].nx[lf1]
+      nxf2 = lop[e2].nx[lf2]
 
       y1 = computetraction(lop[e1], lf1, u[urng1])
       y2 = computetraction(lop[e2], lf2, u[urng2])
-     
+      
+      Δτ1 = nxf1 .* y1  
+      Δτ2 = nxf2 .* y2
+      
+      # compute traction on fault as average of both sides, map to fault orientation:
+      if EToO[lf2, e2]
+        @views Δτ[δrng] .= (Δτ1 .+ Δτ2) ./ 2
+      else
+        @views Δτ[δrng] .= (Δτ1 .+ Δτ2[end:-1:1]) ./ 2 
+      end 
 
-      #@views Δτ[δrng] .= -(y1 .+ y2) ./ 2
-      @views Δτ[δrng] .= y1
       # TODO: update τ here.
       (~, ~, ~, ~, ~, ~, ~, ~,~, ~, ~, ~, ~, ~, ~,~, ~, nx, ~, ~) = lop[e1]
       for δn = FToδstarts[f]:(FToδstarts[f+1]-1)
-        V[δn] = sign(nx[lf1][1]) * Vp  
+        #V[δn] = sign(nx[lf1][1]) * Vp  
         #@show sign(nx[lf1][1])
-        #V[δn] = Vp
+        V[δn] = Vp
       end
     end
     #@show norm(Δτ)

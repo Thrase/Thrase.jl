@@ -551,6 +551,19 @@ function savedatafields(ψδ, t, i, stations, fault, V_0, FToδstarts, p, base_n
     Vmax = maximum(abs.(extrema(V)))
     Vmax = Vmax[1]
 
+        ### delerte when done debugging:
+      ψ  = @view ψδ[        (1:δNp) ]
+      δ  = @view ψδ[ δNp .+ (1:δNp) ] 
+      dψ = @view dψV[       (1:δNp) ]
+
+      # @show (ψ[1], p.σ[1], p.τ[1], V[1])
+    ###
+   
+    # if length(fault.slip[:]) != 0
+    #  clf()
+    #  plt.scatter(fault.coords[:, 2], δ)
+    # end
+
     tlast = length(stations.t) > 0 ? stations.t[end] : -2year_seconds # if stations.t not empty, set tlast = stations.t[end]; otherwise set tlast = -2year_seconds
     tnext = tlast + (Vmax > 1e-3 ? 0.1 : year_seconds) # if Vmax > 1e-3 then add 0.1 to tlast; otherwise add year_seconds
 

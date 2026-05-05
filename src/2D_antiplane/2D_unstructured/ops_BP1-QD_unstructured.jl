@@ -424,19 +424,14 @@ function locoperator(p, Nr, Ns, μ, metrics=create_metrics(Nr,Ns,μ),
 
   # {{{ Dirichlet BC penalties
 
-  β = 10
+  β = 1
   d = 2 # dimension
   
-  #  Z_1 = β * (d/h1) * (Is ⊗ (sJ1_J1)) * (Is ⊗ Crr1) # TODO: check; this is al messed up
-  #  Z_2 = β * (d/h1) * (Is ⊗ (sJ2_J2)) * (Is ⊗ Crr2)
-  #  Z_3 = β * (d/h2) * ((sJ3_J3) ⊗ Ir) * (Css3 ⊗ Ir) # TODO: check
-  #  Z_4 = β * (d/h2) * ((sJ4_J4) ⊗ Ir) * (Css4 ⊗ Ir)
-
-  # Z' penalty parameters (for Dirichlet BC) in logical space: # TODO below are not right - see plane strain ops and correct.
-  sJZ_1 = β * (d ./ h1) * (Is ⊗ Crr1) 
-  sJZ_2 = β * (d ./ h2) * (Is ⊗ Crr2)
-  sJZ_3 = β * (d ./ h3) * (Css3 ⊗ Ir) 
-  sJZ_4 = β * (d ./ h4) * (Css4 ⊗ Ir)
+  # Z' penalty parameters (for Dirichlet BC) in logical space: 
+  sJZ_1 = β * (d ./ h1) * (Crr1 ⊗ Ir) 
+  sJZ_2 = β * (d ./ h2) * (Crr2 ⊗ Ir)
+  sJZ_3 = β * (d ./ h3) * (Is ⊗ Css3) 
+  sJZ_4 = β * (d ./ h4) * (Is ⊗ Css4)
   sJZ = (sJZ_1, sJZ_2, sJZ_3, sJZ_4)
 
   # Dirichlet faces:
@@ -463,10 +458,10 @@ function locoperator(p, Nr, Ns, μ, metrics=create_metrics(Nr,Ns,μ),
   
   # {{{ Interface Penalties
   # Z' penalty parameters (for interface Dirichlet conditions) in logical space:
-  IsJZ_1 = β * (d ./ (4*h1)) * (Is ⊗ Crr1) 
-  IsJZ_2 = β * (d ./ (4*h2)) * (Is ⊗ Crr2)
-  IsJZ_3 = β * (d ./ (4*h3)) * (Css3 ⊗ Ir) 
-  IsJZ_4 = β * (d ./ (4*h4)) * (Css4 ⊗ Ir)
+  IsJZ_1 = β * (d ./ (4*h1)) * (Crr1 ⊗ Ir) 
+  IsJZ_2 = β * (d ./ (4*h2)) * (Crr2 ⊗ Ir)
+  IsJZ_3 = β * (d ./ (4*h3)) * (Is ⊗ Css3) 
+  IsJZ_4 = β * (d ./ (4*h4)) * (Is ⊗ Css4)
   IsJZ = (IsJZ_1, IsJZ_2, IsJZ_3, IsJZ_4)
 
 

@@ -52,8 +52,9 @@ function main()
 
     # Read in the unstructured mesh input file:
     (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/"*meshfile)
-    
-    # Domain size in x-direction (used to specify loading conditions):
+
+
+    # Domain size in x-direction (used to specify output file):
     Lx = maximum(verts[1,:])
     
     # number of elements and faces
@@ -195,11 +196,21 @@ function main()
 
     # Set boundary data functions:
     #{{{ Compute the boundary/interface functions:
-    creep(x, y, t) = (x ./ Lx) .* (Vp/2) .* t
-    bc_Dirichlet = (lf, x, y, e, δ, t) -> creep(x,y,t)
-    bc_Neumann   = (lf, x, y, nx, ny, e, δ, t) -> zeros(size(x))
 
-    in_jump      = (lf, x, y, e, δ, t) -> begin
+    function creep(x,y,t, e, EToDomain)
+        if EToDomain[e] == 1 # left hand side of fault
+            return -(Vp/2) .* t .+ 0 .* x .+ 0 .* y
+        elseif EToDomain[e] == 2
+            return (Vp/2) .* t .+ 0 .* x .+ 0 .* y
+        else
+            error("shouldn't get here")
+        end       
+    end
+
+    bc_Dirichlet = (lf, x, y, e, δ, t, EToDomain) -> creep(x,y,t,e,EToDomain)
+    bc_Neumann   = (lf, x, y, nx, ny, e, δ, t, EToDomain) -> zeros(size(x))
+
+    in_jump      = (lf, x, y, e, δ, t, EToDomain) -> begin
     f = EToF[lf, e]
     if EToS[lf, e] == 1
       if EToO[lf, e]
@@ -226,7 +237,7 @@ function main()
   
     # fill in initial boundary data into b
     for e = 1:nelems
-        loc_bdry_vec_v2!((@view b[vstarts[e]:vstarts[e+1]-1]), lop[e], neighborZ[e], FToB[EToF[:,e]], EToF, FToE, FToLF, bc_Dirichlet, bc_Neumann, in_jump, (e, δ, t))
+        loc_bdry_vec_v2!((@view b[vstarts[e]:vstarts[e+1]-1]), lop[e], neighborZ[e], FToB[EToF[:,e]], EToF, FToE, FToLF, bc_Dirichlet, bc_Neumann, in_jump, (e, δ, t, EToDomain))
     end
    
     u = A \ b # solve linear system with a backsolve to obtain initial displacement u(x, z, 0)
@@ -323,6 +334,7 @@ function main()
     EToO=EToO,
     FToB=FToB,
     FToδstarts=FToδstarts,
+    EToDomain = EToDomain,
     b = b,
     u=u,
     τ=τ,
@@ -338,7 +350,7 @@ function main()
     RSDc=RSDc,
     RSf0=RSf0,
     Lx = Lx,
-    fault_nodes
+    fault_nodes = fault_nodes
     )
 
 
@@ -366,7 +378,7 @@ function main()
     
     # Solve DAE using Tsit5(), an adaptive Runge-Kutta method
     sol = solve(prob, Tsit5(); isoutofdomain=stepcheck, dt=100,
-                abstol = 1e-9, reltol = 1e-9, save_everystep=false, #gamma = 0.05,
+                abstol = 1e-6, reltol = 1e-6, save_everystep=false, #gamma = 0.05,
                 internalnorm=(x, _)->norm(x, Inf), callback=cb)
                 
                 
@@ -380,8 +392,8 @@ S = main();
 # plot_slip(pth*"slip.dat")
 
 # examples of how ot plot times series of shear stress:
-pth = "BP1_N_40_0.0_-7.5.dat"
-plot_fault_time_series("shear_stress", pth)
+#pth = "BP1_N_40_0.0_-7.5.dat"
+#plot_fault_time_series("shear_stress", pth)
 # plot_fault_time_series("slip_rate", pth*"fltst_strk000.txt")
 # plot_fault_time_series("shear_stress", pth*"fltst_strk+10.txt")
 # plot_fault_time_series("state", pth*"fltst_strk+25.txt")
