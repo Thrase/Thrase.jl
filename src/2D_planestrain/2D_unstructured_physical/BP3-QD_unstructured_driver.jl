@@ -56,9 +56,378 @@ function main()
         return 2 .* μ .* ν ./ (1 .- 2 .* ν) .+ 0 .* x
     end
 
-   # Read in the unstructured mesh input file:
-  (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/"*meshfile)
 
+    # 4 horizontal blocks:
+    # verts = [-40 -20 0 20 40 -40 -20 0 20 40;
+    #          -40 -40 -40 -40 -40 0 0 0 0 0]
+
+    # # # aligned
+    # EToV = [1 2 3 4;
+    #         2 3 4 5;
+    #         6 7 8 9;
+    #         7 8 9 10];
+    
+    # EToF = [1 2 3 4;
+    #         2 3 4 5;
+    #         6 7 8 9;
+    #         10 11 12 13];
+    
+    #  FToB = [1; 0; 7; 0; 1; 2; 2; 2; 2; 2; 2; 2; 2];
+
+    #  EToDomain = [1 1 2 2]
+
+    #  # left rotated
+    # EToV = [2 3 3 4;
+    #         7 8 4 5;
+    #         1 2 8 9;
+    #         6 7 9 10];
+    
+    # EToF = [6 7 3 4;
+    #         10 11 4 5;
+    #         2 3 8 9;
+    #         1 2 12 13];
+
+
+    #TESTS!  2 blocks
+    #verts = [-40 0    40   -40 0 40; 
+    #         0  0     0   -80 -80 -80];
+
+    # all aligned
+
+    #normal:
+    # EToV = [4 5;
+    #         5 6;
+    #         1 2;
+    #         2 3];
+    # EToF = [1 2;
+    #         2 3;
+    #         6 7;
+    #         4 5];
+
+    #both rotated
+    #   EToV = [5 6;
+    #         2 3;
+    #         4 5;
+    #         1 2];
+    # EToF = [6 7;
+    #         4 5;
+    #         2 3;
+    #         1 2];
+
+   # only left rotated
+    #   EToV = [5 5;
+    #         2 6;
+    #         4 2;
+    #         1 3];
+    # EToF = [6 2;
+    #         4 3;
+    #         2 7;
+    #         1 5];  
+            
+      #only right rotated:
+    # EToV = [4 6;
+    #         5 3;
+    #         1 5;
+    #         2 2];
+    # EToF = [1 7;
+    #         2 5;
+    #         6 3;
+    #         4 2];
+
+    # upside down 
+    #       EToV = [2 3;
+    #         1 2;
+    #         5 6;
+    #         4 5];
+    # EToF = [2 3;
+    #         1 2;
+    #         4 5;
+    #         6 7];
+
+    # LHS backward
+    #             EToV = [5 5;
+    #         4 6;
+    #         2 2;
+    #         1 3];
+    # EToF = [2 2;
+    #         1 3;
+    #         6 7;
+    #         4 5];
+
+            
+    #  FToB = [1;7;1;2;2;2;2]
+    #  EToDomain = [1 2]
+
+#     FToB = [1; 7; 1; 2; 2; 0; 0; 1; 8; 1; 2; 2];  # boundary/interface conditions
+
+# # same:
+#     #  EToV = [1 7 2 8;
+#     # 2 8 5 9;
+#     # 3 1 4 2;
+#     # 4 2 6 5]
+
+#     # EToF = [1 8 2 9;
+#     # 2 9 3 10;
+#     # 6 11 7 12;
+#     # 4 6 5 7]
+
+   # Read in the unstructured mesh input file:
+ #(verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/"*meshfile)
+
+
+ verts = [-40 -28 -10   0   8  28  40 -40 -30 -14   0   8  25  40 -40 -32 -13   0  8  22  40 -40 -30 -12 0 5 25 40;
+          -80 -80 -80 -80 -80 -80 -80 -40 -50 -20 -40 -35 -50 -60 -10 -12 -5 -30 -8 -20 -30   0   0   0 0 0   0  0]
+
+#           # weird 
+# EToV = [1 2 8 9;
+#         2 3 9 10;
+#         4 11 3 10;
+#         11 4 12 5;
+#         5 6 12 13;
+#         6 7 13 14;
+#         8 9 15 16;
+#         9 10 16 17;
+#         11 18 10 17
+#         18 11 19 12;
+#         12 13 19 20;
+#         13 14 20 21;
+#         15 16 22 23;
+#         16 17 23 24;
+#         18 25 17 24;
+#         25 18 26 19;
+#         19 20 26 27;
+#         20 21 27 28]'
+
+# EToF = [15 16 40 34;
+#         16 17 41 35;
+#         42 36 18 17;
+#         37 43 18 19;
+#         19 20 44 38;
+#         20 21 45 39;
+#         8 9 34 28;
+#         9 10 35 29;
+#         36 30 11 10;
+#         31 37 11 12;
+#         12 13 38 32;
+#         13 14 39 33;
+#         1 2 28 22;
+#         2 3 29 23;
+#         30 24 4 3;
+#         25 31 4 5;
+#         5 6 32 26;
+#         6 7 33 27]'
+# # same
+EToV = [1 2 8 9;
+        2 3 9 10;
+        3 4 10 11;
+        4 5 11 12;
+        5 6 12 13;
+        6 7 13 14;
+        8 9 15 16;
+        9 10 16 17;
+        10 11 17 18;
+        11 12 18 19;
+        12 13 19 20;
+        13 14 20 21;
+        15 16 22 23;
+        16 17 23 24;
+        17 18 24 25;
+        18 19 25 26;
+        19 20 26 27;
+        20 21 27 28]'
+
+EToF = [15 16 40 34;
+        16 17 41 35;
+        17 18 42 36;
+        18 19 43 37;
+        19 20 44 38;
+        20 21 45 39;
+        8 9 34 28;
+        9 10 35 29;
+        10 11 36 30;
+        11 12 37 31;
+        12 13 38 32;
+        13 14 39 33;
+        1 2 28 22;
+        2 3 29 23;
+        3 4 30 24;
+        4 5 31 25;
+        5 6 32 26;
+        6 7 33 27]'
+
+FToB = [1 0 0 7 0 0 1 1 0 0 7 0 0 1 1 0 0 8 0 0 1 2 2 2 2 2 2 0 0 0 0 0 0 0 0 0 0 0 0 2 2 2 2 2 2]'
+
+EToDomain = [1 1 1 2 2 2 1 1 1 2 2 2 1 1 1 2 2 2]
+
+          #  @show verts 
+#  @show EToV
+#  @show EToF
+#  @show FToB
+#  @show EToDomain
+#  poo
+#   verts = [-40 -30 0 25 40 -35 -20 0 30 42 -32.5 -30 0 32 45;
+#              0 0 0 0 0 -40 -38 -18 -12 -15 -80 -80 -80 -80 -80];
+
+# # #irregular
+#     EToV = [6 7 1 2;
+#         8 3 7 2;
+#         3 8 4 9;
+#         9 10 4 5;
+#         11 12 6 7;
+#         13 8 12 7;
+#         8 13 9 14;
+#         14 15 9 10]'
+
+# EToF = [1 2 15 11;
+#         16 12 3 2;
+#         13 17 3 4;
+#         4 5 18 14;
+#         6 7 19 15;
+#         20 16 8 7;
+#         17 21 8 9;
+#         9 10 22 18]'
+# # regular
+#     EToV = [6 7 1 2;
+#         7 8 2 3;
+#         8 9 3 4;
+#         9 10 4 5;
+#         11 12 6 7;
+#         12 13 7 8;
+#         13 14 8 9;
+#         14 15 9 10]'
+
+# EToF = [1 2 15 11;
+#         2 3 16 12;
+#         3 4 17 13;
+#         4 5 18 14;
+#         6 7 19 15;
+#         7 8 20 16;
+#         8 9 21 17;
+#         9 10 22 18]'
+
+#FToB = [1 0 7 0 1 1 0 8 0 1 2 2 2 2 0 0 0 0 2 2 2 2]';
+
+#EToDomain = [1 1 2 2 1 1 2 2]
+
+ # change a bit:
+
+#EToV[:, 15] = [4;5;9;22]
+#ToF[:,15] = [38;34;12;37]
+
+   # Change a bit:
+#    EToV[:,3] = [4;8;1;2]
+#    EToF[:,3] = [9;10;8;3]
+
+#    EToV[:,4] = [8;5;2;3]
+#    EToF[:,4] = [10;12;11;6]
+#    EToV[:,2] = [9;2;6;3]
+#    EToF[:,2] = [7;6;2;5]
+
+#    EToV[:,1] = [7;1;9;2]
+#    EToF[:,1] = [4;3;1;2]
+
+#   #uncomment for two blocks with same orientation
+#  verts = [-40 0 40 -40 0 40;
+#              -80 -80 -80 0 0 0];
+
+#    FToB = [1; 7; 1; 2; 2; 2; 2];
+#    #FToB = [1; 1; 1; 1; 1; 1; 1];
+
+
+# #    #  same orientation
+#     # EToV = [1 2; 2 3; 4 5; 5 6];
+#     # EToF = [1 2; 
+#     #         2 3;
+#     #         6 7;
+#     #         4 5];
+
+#   #  different orientation
+#     EToV = [1 6; 2 5; 4 3; 5 2];
+#     EToF = [1 3; 
+#             2 2;
+#             4 5;
+#             6 7];
+    
+#   EToDomain = [1 2]
+
+
+# Physical Domain:
+#     Lx = 40
+#     Wf = 40
+#     xd = Wf*cosd(psi)
+#     yd = 2*Wf*sind(psi)
+#     verts = [-Lx+xd  0+xd    -Lx   0  Lx+xd      Lx  -Lx+2*xd      0+2*xd     Lx+2*xd; 
+#              -yd/2  -yd/2     0    0    -yd/2     0  -yd  -yd  -yd];
+
+#  FToB = [1; 7; 1; 2; 2; 0; 0; 1; 8; 1; 2; 2];  # boundary/interface conditions
+
+# # same:
+    #  EToV = [1 7 2 8;
+    # 2 8 5 9;
+    # 3 1 4 2;
+    # 4 2 6 5]
+
+    # EToF = [1 8 2 9;
+    # 2 9 3 10;
+    # 6 11 7 12;
+    # 4 6 5 7]
+
+    # right side diff
+
+    #      EToV = [1 7 5 9;
+    # 2 8 6 5;
+    # 3 1 2 8;
+    # 4 2 4 2]
+
+    # EToF = [1 8 7 12;
+    # 2 9 5 7;
+    # 6 11 3 10;
+    # 4 6 2 9]
+
+# #     # left side different orientation
+        # EToV = [2 8 2 8;
+        # 4 2 5 9;
+        # 1 7 4 2;
+        # 3 1 6 5]
+
+        # EToF = [6 11 2 9;
+        # 4 6 3 10;
+        # 2 9 7 12;
+        # 1 8 5 7]
+
+
+# # #     # other diff orient
+    # EToV = [4 2 2 8;
+    # 3 1 5 9;
+    # 2 8 4 2;
+    # 1 7 6 5]
+
+    # EToF = [2 9 2 9;
+    # 1 8 3 10;
+    # 4 6 7 12;
+    # 6 11 5 7]
+# # #     # other diff orient
+#     EToV = [3 1 2 8;
+#     1 7 5 9;
+#     4 2 4 2;
+#     2 8 6 5]
+
+#     EToF = [4 6 2 9;
+#     6 11 3 10;
+#     1 8 7 12;
+#     2 9 5 7]
+
+# #     # other diff orient
+ #   EToV = [1 1 2 8;
+#     2 7 5 9;
+#     3 2 4 2;
+#     4 8 6 5]
+
+#     EToF = [1 6 2 9;
+#    2 11 3 10;
+#     6 8 7 12;
+#     4 9 5 7]
+#     EToDomain = [1 1 2 2]
     # number of elements and faces
     (nelems, nfaces) = (size(EToV, 2), size(FToB, 1))
     @show (nelems, nfaces)
@@ -88,6 +457,12 @@ function main()
     # Secondary Grid Arrays:
     (FToE, FToLF, EToO, EToS) = connectivityarrays(EToV, EToF)
 
+    # @show FToE
+    # @show FToLF
+    # @show EToO
+    # @show EToS
+    
+    # poo
 
     ######### create local operators on each block/element by applying coordinate transform
     # Create an empty dictionary to store the operators;
@@ -153,10 +528,7 @@ function main()
         lop[e] = locoperator(SBPp, Nr[e], Ns[e], exact_mu, exact_lambda, metrics, FToB[EToF[:, e]]) 
     end
 
-    # Calculate neighboring penalty parameters and add to lop 
-    for e = 1:nelems
-        lop[e].neighborZ  .= calculate_neighbors(lop, e, FToB, EToF, FToE, FToLF, EToO)
-    end
+
     
     # Assemble the global volume operator and compute LU factorization:
     A = global_operator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
@@ -164,6 +536,74 @@ function main()
 
     # Get unique array indices for the faces corresponding to the fault/jump interface
     FToδstarts = bcstarts(FToB, FToE, FToLF, (RS_FAULT, VP_FAULT), Nr, Ns)
+
+
+    # Calculate interface jump displacement penalty parameters:
+    for e = 1:nelems
+        LFToB = FToB[EToF[:,e]]
+
+        nz = [similar(lop[e].IsJZ[1]), similar(lop[e].IsJZ[2]), similar(lop[e].IsJZ[3]), similar(lop[e].IsJZ[4])]
+            
+        # loop over the faces to get the neighboring penalty parameters:
+        # 
+        for lf = 1:4   
+            if LFToB[lf] == BC_LOCKED_INTERFACE || LFToB[lf] == BC_JUMP_INTERFACE || LFToB[lf] == RS_FAULT || LFToB[lf] == VP_FAULT
+                f = EToF[lf, e]         # get global face number
+                (em, ep) = FToE[:, f]   # find the two elements that share global face f.
+                (fm, fp) = FToLF[:, f]  # local face numbers corresponding to f.
+                
+
+                if em == e
+                    eo = ep
+                    nf = fp
+                else
+                    eo = em 
+                    nf = fm
+                end
+                
+                # IsJZ_4_11 =  β * (d ./ (4 * h4)) * (Is ⊗ (C22_4 .* sJ4)) 
+                # IsJZ_4_12 =  β * (d ./ (4 * h4)) * (Is ⊗ (C24_4 .* sJ4))  
+                # IsJZ_4_21 =  β * (d ./ (4 * h4)) * (Is ⊗ (C42_4 .* sJ4)) 
+                # IsJZ_4_22 =  β * (d ./ (4 * h4)) * (Is ⊗ (C44_4 .* sJ4)) 
+
+
+                # IsJZ_1 = [[IsJZ_1_11] [IsJZ_1_12]; [IsJZ_1_21] [IsJZ_1_22]]
+                # IsJZ_2 = [[IsJZ_2_11] [IsJZ_2_12]; [IsJZ_2_21] [IsJZ_2_22]]
+                # IsJZ_3 = [[IsJZ_3_11] [IsJZ_3_12]; [IsJZ_3_21] [IsJZ_3_22]]
+                # IsJZ_4 = [[IsJZ_4_11] [IsJZ_4_12]; [IsJZ_4_21] [IsJZ_4_22]]
+
+
+                # IsJZ = (IsJZ_1, IsJZ_2, IsJZ_3, IsJZ_4)
+               
+                if EToO[fp, ep]
+                    nz[lf] .= lop[eo].IsJZ[nf] # need to store the Z from the other element's local face
+                else
+                    nz[lf] .= lop[eo].IsJZ[nf] # need to store reversed Z from the other element's local face
+                    nz11 = nz[lf][1, 1]
+                    nz[lf][1, 1] = nz11[end:-1:1, end:-1:1]
+
+                    nz12 = nz[lf][1, 2]
+                    nz[lf][1, 2] = nz12[end:-1:1, end:-1:1]
+
+                    nz21 = nz[lf][2, 1]
+                    nz[lf][2, 1] = nz21[end:-1:1, end:-1:1]
+
+                    nz22 = nz[lf][2, 2]
+                    nz[lf][2, 2] = nz22[end:-1:1, end:-1:1]
+
+
+                end
+
+
+                
+            else  
+            end
+        
+        end
+        
+        neighborZ[e] = nz
+
+    end
 
     ############ END COORDINATE TRANSFORM
 
@@ -183,6 +623,7 @@ function main()
         end
             
     end
+
     
     bc_Dirichlet = (lf, x, y, e, δ, t, EToDomain) -> creep(x,y,t,e,EToDomain)
     bc_Neumann   = (lf, x, y, nx, ny, e, δ, t, EToDomain) -> [zeros(size(x)), zeros(size(x))]
@@ -214,12 +655,10 @@ function main()
     # initial slip vector
     δ = zeros(δNp, 2) # fault parallel (slip) followed by fault normal (opening)
   
-  
-      # fill in initial boundary data into b
+    # fill in initial boundary data into b
     for e = 1:nelems
-        loc_bdry_vec_v2!((@view b[vstarts[e]:vstarts[e+1]-1, :]), lop[e], FToB[EToF[:,e]], EToF, FToE, FToLF, bc_Dirichlet, bc_Neumann, in_jump, (e, δ, t, EToDomain))
+        loc_bdry_vec_v2!((@view b[vstarts[e]:vstarts[e+1]-1, :]), lop[e], neighborZ[e], FToB[EToF[:,e]], EToF, FToE, FToLF, bc_Dirichlet, bc_Neumann, in_jump, (e, δ, t, EToDomain))
     end
-   
    
     U = A \ b[:] # solve linear system with a backsolve to obtain initial displacements u, w
     u = U[1:VNp]
@@ -264,7 +703,7 @@ function main()
     #         nx = lop[e1].nx
     #         δrng = FToδstarts[f]:(FToδstarts[f+1]-1)
     #         for n = 1:length(δrng)
-    #             τ0[δrng[n]] = sign(nx[lf1][n])*abs(τ0[δrng[n]]) # TODO wtf
+    #             τ0[δrng[n]] = sign(nx[lf1][n])*abs(τ0[δrng[n]]) # TODO WTF is this for.
     #         end
     #     end
     # end
@@ -306,8 +745,8 @@ function main()
     stations = setupfaultstations(stations_locations, lop, FToB, FToE, FToLF,
                                 (RS_FAULT, VP_FAULT))
 
-     fault = setupfaultcoord(lop, FToB, FToE, FToLF,
-                                (RS_FAULT, VP_FAULT), psi) 
+    fault = setupfaultcoord(lop, FToB, FToE, FToLF,
+                                (RS_FAULT, VP_FAULT)) 
 
 
 

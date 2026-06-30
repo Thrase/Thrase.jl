@@ -21,7 +21,7 @@ const RS_FAULT = 7
 const VP_FAULT = 8
 
 include("ops_BP3-QD_unstructured.jl")
-include("odefun_BP3-QD_unstructured.jl")
+include("odefun_BP9-QD_unstructured.jl")
 include("../utils_2D.jl")
 
 # Before running this script, type
@@ -30,11 +30,15 @@ include("../utils_2D.jl")
 
 function main()
     ### input parameters
-    (pth, meshfile, Nx, Ny, sim_years, Vp, psi, ρ, ν, cs, σn, 
+    (pth, meshfile, Nx, Ny, sim_years, Vp, psi, ρ, ν, cs, σmin, 
     RSamin, RSamax, RSb, RSDc,
     RSf0, RSV0, RSVinit, RSH1,RSH2, RSWf, SBPp) = read_params_planestrain(localARGS[1])
 
-    
+    ρw = 1.0
+    K = 3.12
+    g = 9.8
+
+
     try
         mkdir(pth)
     catch
@@ -85,6 +89,7 @@ function main()
         display(p)
     end
 
+    
     # Secondary Grid Arrays:
     (FToE, FToLF, EToO, EToS) = connectivityarrays(EToV, EToF)
 
@@ -153,10 +158,12 @@ function main()
         lop[e] = locoperator(SBPp, Nr[e], Ns[e], exact_mu, exact_lambda, metrics, FToB[EToF[:, e]]) 
     end
 
-    # Calculate neighboring penalty parameters and add to lop 
+
+      # Calculate neighboring penalty parameters and add to lop 
     for e = 1:nelems
         lop[e].neighborZ  .= calculate_neighbors(lop, e, FToB, EToF, FToE, FToLF, EToO)
     end
+    
     
     # Assemble the global volume operator and compute LU factorization:
     A = global_operator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
@@ -164,6 +171,7 @@ function main()
 
     # Get unique array indices for the faces corresponding to the fault/jump interface
     FToδstarts = bcstarts(FToB, FToE, FToLF, (RS_FAULT, VP_FAULT), Nr, Ns)
+
 
     ############ END COORDINATE TRANSFORM
 
@@ -183,6 +191,7 @@ function main()
         end
             
     end
+
     
     bc_Dirichlet = (lf, x, y, e, δ, t, EToDomain) -> creep(x,y,t,e,EToDomain)
     bc_Neumann   = (lf, x, y, nx, ny, e, δ, t, EToDomain) -> [zeros(size(x)), zeros(size(x))]
@@ -214,24 +223,28 @@ function main()
     # initial slip vector
     δ = zeros(δNp, 2) # fault parallel (slip) followed by fault normal (opening)
   
-  
-      # fill in initial boundary data into b
+    # fill in initial boundary data into b
     for e = 1:nelems
         loc_bdry_vec_v2!((@view b[vstarts[e]:vstarts[e+1]-1, :]), lop[e], FToB[EToF[:,e]], EToF, FToE, FToLF, bc_Dirichlet, bc_Neumann, in_jump, (e, δ, t, EToDomain))
     end
-   
    
     U = A \ b[:] # solve linear system with a backsolve to obtain initial displacements u, w
     u = U[1:VNp]
     w = U[VNp+1:end]
 
-    # initialize change in stress due to quasi-static deformation:
+    # initialize backgrounds stresses and changes in stress due to quasi-static deformation:
+    σ11_0 = zeros(δNp)
+    σ22_0 = zeros(δNp)
+    σ33_0 = zeros(δNp)
     Δτ = zeros(δNp)
     Δσ = zeros(δNp)
+    
 
     # Assemble fault variables/data
     fault_nodes = zeros(δNp)
     RSa = zeros(δNp)
+
+    #RSDc = RSDc*ones(δNp)
     for f = 1:nfaces
     if FToB[f] ∈ (RS_FAULT, VP_FAULT)
         (e1, _) = FToE[:, f]
@@ -241,46 +254,47 @@ function main()
         xdf = yf ./ sind(psi)
         δrng = FToδstarts[f]:(FToδstarts[f+1]-1)
         for n = 1:length(δrng)
-        RSa[δrng[n]] = RSamin - (RSamin - RSamax) *
-            min(1, max(0, (RSH1 + xdf[n])/(RSH1 - RSH2)))
-        
-        fault_nodes[δrng[n]] = xdf[n]
+            RSa[δrng[n]] = RSamin - (RSamin - RSamax) *
+                min(1, max(0, (RSH1 + xdf[n])/(RSH1 - RSH2)))
+            
+            fault_nodes[δrng[n]] = xdf[n]
+
+            #if -14 <= fault_nodes[δrng[n]] <= -2
+            #    RSDc[δrng[n]] = 0.14
+            #end
+
+
+            σ11_0[δrng[n]] = K*(ρ - ρw)*g*(-yf[n]) + ρw*g*(-yf[n])
+            σ22_0[δrng[n]] = ρ*g*(-yf[n])
+            σ33_0[δrng[n]] = ρ*g*(-yf[n])
+
         end
     end
     end
-   # plt.scatter(fault_nodes, RSa)
-   
-    # Set pre-stress according to benchmark description
-    τ0 = fill(σn * RSamax * asinh(RSVinit / (2 * RSV0) *
-                                exp.((RSf0 + RSb * log.(RSV0 / RSVinit)) /
-                                        RSamax)) + η * RSVinit,
-            δNp)
-    σ0 = σn .* ones(δNp)
 
-    # for f = 1:nfaces
-    #     if FToB[f] == RS_FAULT
-    #         (e1, e2) = FToE[:, f]
-    #         (lf1, lf2) = FToLF[:, f]
-    #         nx = lop[e1].nx
-    #         δrng = FToδstarts[f]:(FToδstarts[f+1]-1)
-    #         for n = 1:length(δrng)
-    #             τ0[δrng[n]] = sign(nx[lf1][n])*abs(τ0[δrng[n]]) # TODO wtf
-    #         end
-    #     end
-    # end
-   
+
+    # Set pre-stress according to benchmark description, using max normal stress
+    σ0 = min.(100, sind(psi)*sind(psi) .* σ11_0 .+ cosd(psi)*cosd(psi) .* σ33_0)
+    #σ0 = sind(psi)*sind(psi) .* σ11_0 .+ cosd(psi)*cosd(psi) .* σ33_0
+
+    τ0 = sind(psi)*cosd(psi) .* (σ11_0 .- σ33_0)
+
+     # Calculate total shear/normal stress at t = 0:
+    σ = σ0 + Δσ
+    τ = τ0 + Δτ
+    
+
     # Set initial state variable according to benchmark           
-    θ = (RSDc ./ RSV0) .* exp.((RSa ./ RSb) .* log.((2 .* RSV0 ./ RSVinit) .*
-        sinh.((τ0 .- η .* RSVinit) ./ (RSa .* σn))) .- RSf0 ./ RSb)
+    #θ = (RSDc ./ RSV0) .* exp.((RSa ./ RSb) .* log.((2 .* RSV0 ./ RSVinit) .*
+    #    sinh.((τ .- η .* RSVinit) ./ (RSa .* σn))) .- RSf0 ./ RSb)
+    θ = (RSDc / Vp) .* ones(δNp)
+    #θ = (RSDc / 1e-3) .* ones(δNp)
+    
     # Initialize psi version of state variable    
     ψ = RSf0 .+ RSb .* log.(RSV0 .* θ ./ RSDc)
-    # Set initial velocity (this cannot be set independently, it must be consistent with θ and ψ)
-    V_0 = Vp .* ones(δNp)
+    # Set initial velocity (this cannot be set independently, it must be consistent with θ/ψ and τ)
+    V_0 = zeros(δNp) # Set to anything, a consistent value will be found in Newton solve
 
-
-    # Calculate total shear/normal stress at t = 0:
-    τ = τ0 + Δτ
-    σ = σ0 + Δσ
 
     # Set initial condition for index 1 DAE - this is a stacked vector containing ψ, followed by slip (two components)
     ψδ = zeros(3δNp)
@@ -306,12 +320,16 @@ function main()
     stations = setupfaultstations(stations_locations, lop, FToB, FToE, FToLF,
                                 (RS_FAULT, VP_FAULT))
 
-     fault = setupfaultcoord(lop, FToB, FToE, FToLF,
+    fault = setupfaultcoord(lop, FToB, FToE, FToLF,
                                 (RS_FAULT, VP_FAULT), psi) 
 
 
-
-
+    Λ0 = μ .* RSDc ./ (RSb .* σ)
+    hstar = (π/2) .* μ .* RSb .* RSDc ./ (σ .* (RSb .- RSa) .^ 2)
+    #plt.scatter(fault.coords[:, 2], Λ0)
+    #plt.scatter(fault.coords[:, 2], hstar)
+    #plt.scatter(fault.coords[:, 2], σn)
+    #poo
     # set up parameters sent to the right hand side of the DAE:
     odeparam = (reject_step = [false],
     Vp=Vp,
@@ -337,7 +355,7 @@ function main()
     μshear=μshear,
     RSa=RSa,
     RSb=RSb,
-    σn=σn,
+    σmin=σmin,
     η=η,
     RSV0=RSV0,
     τ0=τ0,
@@ -364,16 +382,16 @@ function main()
         return false
     end
          
-    @show Nr[1]
+  
     # Set call-back function so that fields are written to text file after successful time step only.
     cb = SavingCallback((ψδ, t, i)->savedatafields(ψδ, t, i, stations, fault, V_0, 
                                                     FToδstarts, odeparam,
-                                                    pth*"BP3_N_$(Nr[1])_", pth*"Slip_BP3_N_$(Nr[1])_",  10year_seconds),
+                                                    pth*"BP9_N_$(Nr[1])_", pth*"Slip_BP9_N_$(Nr[1])_",  10year_seconds),
                         SavedValues(Float64, Float64))
  
     # Solve DAE using Tsit5(), an adaptive Runge-Kutta method
     sol = solve(prob, Tsit5(); isoutofdomain=stepcheck, dt=1,
-                abstol = 1e-7, reltol = 1e-7, save_everystep=false, #gamma = 0.05,
+                abstol = 1e-8, reltol = 1e-8, save_everystep=false, #gamma = 0.05,
                 internalnorm=(x, _)->norm(x, Inf), callback=cb)
                 
                 

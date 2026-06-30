@@ -108,7 +108,6 @@ function create_metrics(Nr, Ns, exact_mu, exact_lambda,
   μ = exact_mu(x, y)
   λ = exact_lambda(x, y)
   
-
   J = xr .* ys - xs .* yr
   # The Jacobian determinant of mapping from logical to physical.  (large if mapping from domain larger than 1. )
  
@@ -305,14 +304,6 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
   # {{{ Create 1D operators in logical space #TODO: higher order accuracy for computing tractions. 
   (Dr, HrI, Hr, r) = diagonal_sbp_D1(p, Nr; xc = (-1,1))
   (Ds, HsI, Hs, s) = diagonal_sbp_D1(p, Ns; xc = (-1,1))
-  (_, S0r, SNr, _, _, _) = diagonal_sbp_D2(p, Nr; xc = (-1,1))
-  (_, S0s, SNs, _, _, _) = diagonal_sbp_D2(p, Ns; xc = (-1,1))
-
-  # UPDATE BOUNDARY STENCILS
-  # Dr[1,:] = S0r[1,:]
-  # Dr[end,:] = SNr[end,:]
-  # Ds[1,:] = S0s[1,:]
-  # Ds[end,:] = SNs[end,:]
 
 
   # {{{ 2D Identity matrices
@@ -354,6 +345,12 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
        convert(SparseMatrixCSC{Float64, Int64}, kron(es0', Ir)),
        convert(SparseMatrixCSC{Float64, Int64}, kron(esN', Ir)))
   
+ 
+  # Surface mass matrices
+  H1 = Hs
+  H2 = Hs
+  H3 = Hr
+  H4 = Hr
 
   # Surface quadrature matrices
   H1 = H2 = Hs 
@@ -363,10 +360,10 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
   Hinv = HsI ⊗ HrI
   
   # h1 and h2 in A&D are in logical space
-  h1 = Hs[1, 1] 
-  h2 = Hs[Nrp, Nrp] 
-  h3 = Hr[1, 1] 
-  h4 = Hr[Nsp, Nsp] 
+  h1 = Hr[1, 1] 
+  h2 = Hr[Nrp, Nrp] 
+  h3 = Hs[1, 1] 
+  h4 = Hs[Nsp, Nsp] 
 
 
   H̃ = Hs ⊗ Hr            # Need this for convergence tests.
@@ -448,43 +445,25 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
   
   T = (T_1, T_2, T_3, T_4)   
 
-  
-  
-  mT11_1 = -Sr0_11 - ((C12_1*Ds) ⊗ Ir)
-  mT12_1 = -Sr0_13 - ((C14_1*Ds) ⊗ Ir)
-  mT21_1 = -Sr0_31 - ((C32_1*Ds) ⊗ Ir)
-  mT22_1 = -Sr0_33 - ((C34_1*Ds) ⊗ Ir)
+  TT_1 = [[T11_1'] [1 * T21_1']; [1 * T12_1'] [T22_1']]
+  TT_2 = [[T11_2'] [1 * T21_2']; [1 * T12_2'] [T22_2']]
+  TT_3 = [[T11_3'] [1 * T21_3']; [1 * T12_3'] [T22_3']]
+  TT_4 = [[T11_4'] [1 * T21_4']; [1 * T12_4'] [T22_4']]
 
-  mT11_2 = SrN_11 + ((C12_2*Ds) ⊗ Ir)
-  mT12_2 = SrN_13 + ((C14_2*Ds) ⊗ Ir)
-  mT21_2 = SrN_31 + ((C32_2*Ds) ⊗ Ir)
-  mT22_2 = SrN_33 + ((C34_2*Ds) ⊗ Ir)
-
-  mT11_3 = -(Is ⊗ (C21_3*Dr)) - Ss0_22
-  mT12_3 = -(Is ⊗ (C32_3*Dr)) - Ss0_24
-  mT21_3 = -(Is ⊗ (C41_3*Dr)) - Ss0_42
-  mT22_3 = -(Is ⊗ (C43_3*Dr)) - Ss0_44
-
-  mT11_4 = (Is ⊗ (C21_4*Dr)) + SsN_22
-  mT12_4 = (Is ⊗ (C32_4*Dr)) + SsN_24
-  mT21_4 = (Is ⊗ (C41_4*Dr)) + SsN_42
-  mT22_4 = (Is ⊗ (C43_4*Dr)) + SsN_44
-
-  ad = 0 # TODO: resolve with A&D
-  TT_1 = [[ad * mT11_1'] [ad * mT21_1']; [ad * mT12_1'] [ad * mT22_1']]
-  TT_2 = [[ad * mT11_2'] [ad * mT21_2']; [ad * mT12_2'] [ad * mT22_2']]
-  TT_3 = [[ad * mT11_3'] [ad * mT21_3']; [ad * mT12_3'] [ad * mT22_3']]
-  TT_4 = [[ad * mT11_4'] [ad * mT21_4']; [ad * mT12_4'] [ad * mT22_4']]
-
-  TT = (TT_1, TT_2, TT_3, TT_4)   
+  TT = (1 .* TT_1, 1 .* TT_2, 1 .* TT_3, 1 .* TT_4)   
   # }}}
     
 
 
   # {{{ Dirichlet BC penalties
 
-  β = 1
+  β = 10
   d = 2 # dimension
+  sJ1 = metrics.sJ[1]
+  sJ2 = metrics.sJ[2]
+  sJ3 = metrics.sJ[3]
+  sJ4 = metrics.sJ[4]
+
  
   # Z' penalty parameters (for Dirichlet BC) in logical space: #TODO these also need to be fixed - see interaface SATS
   sJZ11_1 = β * (d ./ h1) * ((C11_1) ⊗ Ir) 
@@ -508,15 +487,18 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
   sJZ22_4 = β * (d ./ h4) * (Is ⊗ (C44_4)) 
   
 
+
   sJZ_1 = [[sJZ11_1] [sJZ12_1]; [sJZ21_1] [sJZ22_1]]
   sJZ_2 = [[sJZ11_2] [sJZ12_2]; [sJZ21_2] [sJZ22_2]]
   sJZ_3 = [[sJZ11_3] [sJZ12_3]; [sJZ21_3] [sJZ22_3]]
   sJZ_4 = [[sJZ11_4] [sJZ12_4]; [sJZ21_4] [sJZ22_4]]
 
+
   sJZ = (sJZ_1, sJZ_2, sJZ_3, sJZ_4)   
 
 
   # Dirichlet faces: 
+
   dSAT_1_11 = Hinv * (T11_1 .- sJZ11_1)' * eRS[1] * H1 * eRS[1]'   #multiplies first variable and added to first equation
   dSAT_1_12 = Hinv * (T12_1 .- sJZ12_1)' * eRS[1] * H1 * eRS[1]'     # mulitplies first variable and added to second
   dSAT_1_21 = Hinv * (T21_1 .- sJZ21_1)' * eRS[1] * H1 * eRS[1]' # multiplies second variable and added to first
@@ -578,26 +560,26 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
 
   # {{{ Interface Penalties #TODO Edit for plane strain
   # Z' penalty parameters (for interface Dirichlet conditions) in logical space:
+  c = 1
+  IsJZ_1_11 =  c * β * (d ./ (4 * h1)) * ((C11_1) ⊗ Ir) # TODO check sJ in these
+  IsJZ_1_12 =  c * β * (d ./ (4 * h1)) * ((C13_1) ⊗ Ir)
+  IsJZ_1_21 =  c * β * (d ./ (4 * h1)) * ((C31_1) ⊗ Ir)
+  IsJZ_1_22 =  c * β * (d ./ (4 * h1)) * ((C33_1) ⊗ Ir) 
 
-  IsJZ_1_11 =  β * (d ./ (4 * h1)) * (C11_1 ⊗ Ir) 
-  IsJZ_1_12 =  β * (d ./ (4 * h1)) * (C13_1 ⊗ Ir)
-  IsJZ_1_21 =  β * (d ./ (4 * h1)) * (C31_1 ⊗ Ir)
-  IsJZ_1_22 =  β * (d ./ (4 * h1)) * (C33_1 ⊗ Ir)  
+  IsJZ_2_11 =  c * β * (d ./ (4 * h2)) * ((C11_2) ⊗ Ir)
+  IsJZ_2_12 =  c * β * (d ./ (4 * h2)) * ((C13_2) ⊗ Ir)
+  IsJZ_2_21 =  c * β * (d ./ (4 * h2)) * ((C31_2) ⊗ Ir)
+  IsJZ_2_22 =  c * β * (d ./ (4 * h2)) * ((C33_2) ⊗ Ir) 
 
-  IsJZ_2_11 =  β * (d ./ (4 * h2)) * (C11_2 ⊗ Ir) 
-  IsJZ_2_12 =  β * (d ./ (4 * h2)) * (C13_2 ⊗ Ir)
-  IsJZ_2_21 =  β * (d ./ (4 * h2)) * (C31_2 ⊗ Ir)
-  IsJZ_2_22 =  β * (d ./ (4 * h2)) * (C33_2 ⊗ Ir)
+  IsJZ_3_11 =  c * β * (d ./ (4 * h3)) * (Is ⊗ (C22_3)) 
+  IsJZ_3_12 =  c * β * (d ./ (4 * h3)) * (Is ⊗ (C24_3))  
+  IsJZ_3_21 =  c * β * (d ./ (4 * h3)) * (Is ⊗ (C42_3)) 
+  IsJZ_3_22 =  c * β * (d ./ (4 * h3)) * (Is ⊗ (C44_3)) 
 
-  IsJZ_3_11 =  β * (d ./ (4 * h3)) * (Is ⊗ C22_3) 
-  IsJZ_3_12 =  β * (d ./ (4 * h3)) * (Is ⊗ C24_3)  
-  IsJZ_3_21 =  β * (d ./ (4 * h3)) * (Is ⊗ C42_3) 
-  IsJZ_3_22 =  β * (d ./ (4 * h3)) * (Is ⊗ C44_3) 
-
-  IsJZ_4_11 =  β * (d ./ (4 * h4)) * (Is ⊗ C22_4)  
-  IsJZ_4_12 =  β * (d ./ (4 * h4)) * (Is ⊗ C24_4)  
-  IsJZ_4_21 =  β * (d ./ (4 * h4)) * (Is ⊗ C42_4) 
-  IsJZ_4_22 =  β * (d ./ (4 * h4)) * (Is ⊗ C44_4)
+  IsJZ_4_11 =  c * β * (d ./ (4 * h4)) * (Is ⊗ (C22_4)) 
+  IsJZ_4_12 =  c * β * (d ./ (4 * h4)) * (Is ⊗ (C24_4))  
+  IsJZ_4_21 =  c * β * (d ./ (4 * h4)) * (Is ⊗ (C42_4)) 
+  IsJZ_4_22 =  c * β * (d ./ (4 * h4)) * (Is ⊗ (C44_4)) 
 
 
   IsJZ_1 = [[IsJZ_1_11] [IsJZ_1_12]; [IsJZ_1_21] [IsJZ_1_22]]
@@ -633,6 +615,8 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
   dB4_12 = Hinv * (T12_4 .- sJZ12_4)' * eRS[4] * H4    # mulitopleis first vrriable data, added to second
   dB4_21 = Hinv * (T21_4 .- sJZ21_4)' * eRS[4] * H4    # mulitiplies second variable, added to first
   dB4_22 = Hinv * (T22_4 .- sJZ22_4)' * eRS[4] * H4    # mulitplies second var, added to second
+  
+  
   
   
   dB1 = [[dB1_11] [dB1_12]; [dB1_21] [dB1_22]]
@@ -731,6 +715,7 @@ function loc_bdry_vec!(ge, lop, LFToB, EToF, FToE, FToLF, bc_Dirichlet, bc_Neuma
   nB = lop.nB 
   
 
+
   (xf, yf) = lop.facecoord
   sJ = lop.sJ 
   nx = lop.nx
@@ -771,10 +756,12 @@ function loc_bdry_vec!(ge, lop, LFToB, EToF, FToE, FToLF, bc_Dirichlet, bc_Neuma
 
       gJ = in_jump(lf, xf[lf], yf[lf], bcargs...)  # this should return a two column vector containing slip components
 
-      A11 = -lop.Hinv * sJZ11 * lop.eRS[lf] * lop.H[lf] + 0.5 * lop.Hinv * lop.TT[lf][1, 1] * lop.eRS[lf] * lop.H[lf]
-      A21 = (-lop.Hinv * sJZ21 * lop.eRS[lf] * lop.H[lf] + 0.5 * lop.Hinv * lop.TT[lf][1, 2] * lop.eRS[lf] * lop.H[lf])
-      A12 = (-lop.Hinv * sJZ12 * lop.eRS[lf] * lop.H[lf] + 0.5 * lop.Hinv * lop.TT[lf][2, 1] * lop.eRS[lf] * lop.H[lf])
-      A22 = -lop.Hinv * sJZ22 * lop.eRS[lf] * lop.H[lf] + 0.5 * lop.Hinv * lop.TT[lf][2, 2] * lop.eRS[lf] * lop.H[lf]
+      cc = 0
+      d = 1
+      A11 = -lop.Hinv * sJZ11 * lop.eRS[lf] * lop.H[lf] + d * 0.5 * lop.Hinv * lop.TT[lf][1, 1] * lop.eRS[lf] * lop.H[lf]
+      A21 = -lop.Hinv * sJZ21 * lop.eRS[lf] * lop.H[lf] + cc * 0.5 * lop.Hinv * lop.TT[lf][1, 2] * lop.eRS[lf] * lop.H[lf]
+      A12 = -lop.Hinv * sJZ12 * lop.eRS[lf] * lop.H[lf] + cc * 0.5 * lop.Hinv * lop.TT[lf][2, 1] * lop.eRS[lf] * lop.H[lf]
+      A22 = -lop.Hinv * sJZ22 * lop.eRS[lf] * lop.H[lf] + d * 0.5 * lop.Hinv * lop.TT[lf][2, 2] * lop.eRS[lf] * lop.H[lf]
       
       # Jump in traction
       gT = in_tractionjump(lf, xf[lf], yf[lf], bcargs...) # this should return a two column vector
@@ -809,9 +796,6 @@ function loc_bdry_vec_v2!(ge, lop, LFToB, EToF, FToE, FToLF, bc_Dirichlet, bc_Ne
 
   (xf, yf) = lop.facecoord
   sJ = lop.sJ 
-
-
-
   nx = lop.nx
   ny = lop.ny
   ge[:, :] .= 0
@@ -840,26 +824,44 @@ function loc_bdry_vec_v2!(ge, lop, LFToB, EToF, FToE, FToLF, bc_Dirichlet, bc_Ne
       continue # nothing to do here
 
     elseif LFToB[lf] == BC_JUMP_INTERFACE || LFToB[lf] == RS_FAULT || LFToB[lf] == VP_FAULT
-     
+      
+     # f = EToF[lf, e]  # get global face number
+
+      # (em, ep) = FToE[:, f]  # find the two elements that share global face f; ep is other side
+      # (fm, fp) = FToLF[:, f] # calculate local face numbers
+      
+    
+      # if em == e
+      #   eo = ep  
+      #   nf = fp
+      # else
+      #   eo = em 
+      #   nf = fm
+      # end
+
 
     sJZ11 = 1*(lop.IsJZ[lf][1, 1])' + (lop.neighborZ[lf][1, 1])'
     sJZ12 = 1*(lop.IsJZ[lf][1, 2])' + (lop.neighborZ[lf][1, 2])'
     sJZ21 = 1*(lop.IsJZ[lf][2, 1])' + (lop.neighborZ[lf][2, 1])'
     sJZ22 = 1*(lop.IsJZ[lf][2, 2])' + (lop.neighborZ[lf][2, 2])'
+
+ 
+
+
   
       # Jump in displacement
 
       δ = in_jump(lf, xf[lf], yf[lf], bcargs...)  # this should return a two column vector containing slip components (parallel followed by normal)
   
-      du =  -δ[:, 1] .* abs.(ny[lf]) # horizontal jump
+      du =  -δ[:, 1] .* 0 .* abs.(ny[lf]) # horizontal jump
       dw =   δ[:, 1] .* abs.(nx[lf])  #vertical jump
 
 
-
-      A11 = -lop.Hinv * sJZ11 * lop.eRS[lf] * lop.H[lf] + 0.5 * lop.Hinv * lop.TT[lf][1, 1] * lop.eRS[lf] * lop.H[lf]
-      A21 = -lop.Hinv * sJZ21 * lop.eRS[lf] * lop.H[lf] + 0.5 * lop.Hinv * lop.TT[lf][1, 2] * lop.eRS[lf] * lop.H[lf]
-      A12 = -lop.Hinv * sJZ12 * lop.eRS[lf] * lop.H[lf] + 0.5 * lop.Hinv * lop.TT[lf][2, 1] * lop.eRS[lf] * lop.H[lf]
-      A22 = -lop.Hinv * sJZ22 * lop.eRS[lf] * lop.H[lf] + 0.5 * lop.Hinv * lop.TT[lf][2, 2] * lop.eRS[lf] * lop.H[lf]
+      cc = 0
+      A11 = -lop.Hinv * sJZ11 * lop.eRS[lf] * lop.H[lf] + 1 * 0.5 * lop.Hinv * lop.TT[lf][1, 1] * lop.eRS[lf] * lop.H[lf]
+      A21 = -lop.Hinv * sJZ21 * lop.eRS[lf] * lop.H[lf] + cc * 0.5 * lop.Hinv * lop.TT[lf][1, 2] * lop.eRS[lf] * lop.H[lf]
+      A12 = -lop.Hinv * sJZ12 * lop.eRS[lf] * lop.H[lf] + cc * 0.5 * lop.Hinv * lop.TT[lf][2, 1] * lop.eRS[lf] * lop.H[lf]
+      A22 = -lop.Hinv * sJZ22 * lop.eRS[lf] * lop.H[lf] + 1 * 0.5 * lop.Hinv * lop.TT[lf][2, 2] * lop.eRS[lf] * lop.H[lf]
       
   
       vf_1 = A11*du + A21*dw
@@ -1118,6 +1120,34 @@ function global_operator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
       sJZ_21p = (lop[ep].IsJZ[fp][2, 1])' + (lop[ep].neighborZ[fp][2, 1])' 
       sJZ_22p = (lop[ep].IsJZ[fp][2, 2])' + (lop[ep].neighborZ[fp][2, 2])' 
 
+
+
+      # if EToO[fp, ep] # if orientation matches
+
+      #     sJZ_11m = (lop[em].IsJZ[fm][1, 1])' + (lop[ep].IsJZ[fp][1, 1])' 
+      #     sJZ_12m = (lop[em].IsJZ[fm][1, 2])' + (lop[ep].IsJZ[fp][1, 2])'
+      #     sJZ_21m = (lop[em].IsJZ[fm][2, 1])' + (lop[ep].IsJZ[fp][2, 1])'
+      #     sJZ_22m = (lop[em].IsJZ[fm][2, 2])' + (lop[ep].IsJZ[fp][2, 2])'
+
+      #     sJZ_11p = (lop[ep].IsJZ[fp][1, 1])' + (lop[em].IsJZ[fm][1, 1])' 
+      #     sJZ_12p = (lop[ep].IsJZ[fp][1, 2])' + (lop[em].IsJZ[fm][1, 2])'
+      #     sJZ_21p = (lop[ep].IsJZ[fp][2, 1])' + (lop[em].IsJZ[fm][2, 1])'
+      #     sJZ_22p = (lop[ep].IsJZ[fp][2, 2])' + (lop[em].IsJZ[fm][2, 2])'
+        
+      #   else # non-matching orientation; rotate the opposing element's data:
+   
+      #     sJZ_11m = (lop[em].IsJZ[fm][1, 1])' + rotate_diagonal((lop[ep].IsJZ[fp][1, 1]))' 
+      #     sJZ_12m = (lop[em].IsJZ[fm][1, 2])' + rotate_diagonal((lop[ep].IsJZ[fp][1, 2]))'
+      #     sJZ_21m = (lop[em].IsJZ[fm][2, 1])' + rotate_diagonal((lop[ep].IsJZ[fp][2, 1]))'
+      #     sJZ_22m = (lop[em].IsJZ[fm][2, 2])' + rotate_diagonal((lop[ep].IsJZ[fp][2, 2]))'
+
+      #     sJZ_11p = (lop[ep].IsJZ[fp][1, 1])' + rotate_diagonal((lop[em].IsJZ[fm][1, 1]))' 
+      #     sJZ_12p = (lop[ep].IsJZ[fp][1, 2])' + rotate_diagonal((lop[em].IsJZ[fm][1, 2]))'
+      #     sJZ_21p = (lop[ep].IsJZ[fp][2, 1])' + rotate_diagonal((lop[em].IsJZ[fm][2, 1]))'
+      #     sJZ_22p = (lop[ep].IsJZ[fp][2, 2])' + rotate_diagonal((lop[em].IsJZ[fm][2, 2]))'
+
+           
+      #   end
   
 
       Tm_11 = lop[em].T[fm][1, 1]
@@ -1142,50 +1172,58 @@ function global_operator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
       TTp_22 = lop[ep].TT[fp][2, 2]
 
 
-    
+      cc = 0
+      d = 1
+      aa = 1
+
       # Local effects, for both plus and minus sides of face f, they should match signs:
-      M11[vstarts[em]:vstarts[em+1]-1, vstarts[em]:vstarts[em+1]-1] += (-lop[em].Hinv * (sJZ_11m - 0.5 * TTm_11) * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] + 
-                                                                      -  0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] * Tm_11)
-      M11[vstarts[ep]:vstarts[ep+1]-1, vstarts[ep]:vstarts[ep+1]-1] += (-lop[ep].Hinv * (sJZ_11p - 0.5 * TTp_11) * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] + 
-                                                                      -  0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] * Tp_11)
+      M11[vstarts[em]:vstarts[em+1]-1, vstarts[em]:vstarts[em+1]-1] += (-lop[em].Hinv * (sJZ_11m - d * 0.5 * TTm_11) * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] + 
+                                                                      -  aa * 0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] * Tm_11)
+      M11[vstarts[ep]:vstarts[ep+1]-1, vstarts[ep]:vstarts[ep+1]-1] += (-lop[ep].Hinv * (sJZ_11p - d * 0.5 * TTp_11) * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] + 
+                                                                      -  aa * 0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] * Tp_11)
 
-      M12[vstarts[em]:vstarts[em+1]-1, vstarts[em]:vstarts[em+1]-1] += (-lop[em].Hinv * (sJZ_21m - 0.5 * TTm_12) * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] + 
-                                                                      -  0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] * Tm_12)
-      M12[vstarts[ep]:vstarts[ep+1]-1, vstarts[ep]:vstarts[ep+1]-1] +=  (-lop[ep].Hinv * (sJZ_21p - 0.5 * TTp_12) * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] + 
-                                                                      -  0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] * Tp_12)
+      M12[vstarts[em]:vstarts[em+1]-1, vstarts[em]:vstarts[em+1]-1] += (-lop[em].Hinv * (sJZ_21m - cc * 0.5 * TTm_12) * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] + 
+                                                                      -  aa * 0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] * Tm_12)
+      M12[vstarts[ep]:vstarts[ep+1]-1, vstarts[ep]:vstarts[ep+1]-1] +=  (-lop[ep].Hinv * (sJZ_21p - cc * 0.5 * TTp_12) * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] + 
+                                                                      -  aa * 0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] * Tp_12)
 
-      M21[vstarts[em]:vstarts[em+1]-1, vstarts[em]:vstarts[em+1]-1] += (-lop[em].Hinv * (sJZ_12m - 0.5 * TTm_21) * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] + 
-                                                                      -  0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] * Tm_21)
-      M21[vstarts[ep]:vstarts[ep+1]-1, vstarts[ep]:vstarts[ep+1]-1] += (-lop[ep].Hinv * (sJZ_12p - 0.5 * TTp_21) * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] + 
-                                                                      -  0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] * Tp_21)
+      M21[vstarts[em]:vstarts[em+1]-1, vstarts[em]:vstarts[em+1]-1] += (-lop[em].Hinv * (sJZ_12m - cc * 0.5 * TTm_21) * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] + 
+                                                                      -  aa * 0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] * Tm_21)
+      M21[vstarts[ep]:vstarts[ep+1]-1, vstarts[ep]:vstarts[ep+1]-1] += (-lop[ep].Hinv * (sJZ_12p - cc * 0.5 * TTp_21) * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] + 
+                                                                      -  aa * 0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] * Tp_21)
 
-      M22[vstarts[em]:vstarts[em+1]-1, vstarts[em]:vstarts[em+1]-1] += (-lop[em].Hinv * (sJZ_22m - 0.5 * TTm_22) * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] + 
-                                                                      -  0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] * Tm_22)
-      M22[vstarts[ep]:vstarts[ep+1]-1, vstarts[ep]:vstarts[ep+1]-1] += (-lop[ep].Hinv * (sJZ_22p - 0.5 * TTp_22) * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] + 
-                                                                      -  0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] * Tp_22)
+      M22[vstarts[em]:vstarts[em+1]-1, vstarts[em]:vstarts[em+1]-1] += (-lop[em].Hinv * (sJZ_22m - d * 0.5 * TTm_22) * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] + 
+                                                                      -  aa * 0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] * Tm_22)
+      M22[vstarts[ep]:vstarts[ep+1]-1, vstarts[ep]:vstarts[ep+1]-1] += (-lop[ep].Hinv * (sJZ_22p - d * 0.5 * TTp_22) * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] + 
+                                                                      -  aa * 0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * lop[ep].eRST[fp] * Tp_22)
+
 
    
   
       # account for opposite side; 
-      M11[vstarts[em]:vstarts[em+1]-1, vstarts[ep]:vstarts[ep+1]-1] +=  (lop[em].Hinv * (sJZ_11m - 0.5 * TTm_11) * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] + 
-                                                                      -  0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] * Tp_11)
-      M11[vstarts[ep]:vstarts[ep+1]-1, vstarts[em]:vstarts[em+1]-1] += (lop[ep].Hinv * (sJZ_11p - 0.5 * TTp_11) * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] + 
-                                                                      -  0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] * Tm_11)
+      M11[vstarts[em]:vstarts[em+1]-1, vstarts[ep]:vstarts[ep+1]-1] +=  (lop[em].Hinv * (sJZ_11m - d * 0.5 * TTm_11) * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] + 
+                                                                      -  aa * 0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] * Tp_11)
+      M11[vstarts[ep]:vstarts[ep+1]-1, vstarts[em]:vstarts[em+1]-1] += (lop[ep].Hinv * (sJZ_11p - d * 0.5 * TTp_11) * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] + 
+                                                                      -  aa * 0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] * Tm_11)
 
-      M12[vstarts[em]:vstarts[em+1]-1, vstarts[ep]:vstarts[ep+1]-1] += (lop[em].Hinv * (sJZ_21m - 0.5 * TTm_12) * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] + 
-                                                                      -  0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] * Tp_12)
-      M12[vstarts[ep]:vstarts[ep+1]-1, vstarts[em]:vstarts[em+1]-1] += (lop[ep].Hinv * (sJZ_21p - 0.5 * TTp_12) * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] + 
-                                                                      -  0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] * Tm_12)
+      M12[vstarts[em]:vstarts[em+1]-1, vstarts[ep]:vstarts[ep+1]-1] += (lop[em].Hinv * (sJZ_21m - cc * 0.5 * TTm_12) * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] + 
+                                                                      -  aa * 0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] * Tp_12)
 
-      M21[vstarts[em]:vstarts[em+1]-1, vstarts[ep]:vstarts[ep+1]-1] += (lop[em].Hinv * (sJZ_12m - 0.5 * TTm_21) * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] + 
-                                                                      -  0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] * Tp_21)
-      M21[vstarts[ep]:vstarts[ep+1]-1, vstarts[em]:vstarts[em+1]-1] += (lop[ep].Hinv * (sJZ_12p - 0.5 * TTp_21) * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] + 
-                                                                      -  0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] * Tm_21)
+      M12[vstarts[ep]:vstarts[ep+1]-1, vstarts[em]:vstarts[em+1]-1] += (lop[ep].Hinv * (sJZ_21p - cc * 0.5 * TTp_12) * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] + 
+                                                                      -  aa * 0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] * Tm_12)
+
+      
+      M21[vstarts[em]:vstarts[em+1]-1, vstarts[ep]:vstarts[ep+1]-1] += (lop[em].Hinv * (sJZ_12m - cc * 0.5 * TTm_21) * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] + 
+                                                                      -  aa * 0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] * Tp_21)
+      M21[vstarts[ep]:vstarts[ep+1]-1, vstarts[em]:vstarts[em+1]-1] += (lop[ep].Hinv * (sJZ_12p - cc * 0.5 * TTp_21) * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] + 
+                                                                      -  aa * 0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] * Tm_21)
          
-      M22[vstarts[em]:vstarts[em+1]-1, vstarts[ep]:vstarts[ep+1]-1] +=  (lop[em].Hinv * (sJZ_22m - 0.5 * TTm_22) * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] + 
-                                                                      -  0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] * Tp_22)
-      M22[vstarts[ep]:vstarts[ep+1]-1, vstarts[em]:vstarts[em+1]-1] += (lop[ep].Hinv * (sJZ_22p - 0.5 * TTp_22) * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] + 
-                                                                      -  0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] * Tm_22)
+      M22[vstarts[em]:vstarts[em+1]-1, vstarts[ep]:vstarts[ep+1]-1] +=  (lop[em].Hinv * (sJZ_22m - d * 0.5 * TTm_22) * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] + 
+                                                                      -  aa * 0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * R * lop[ep].eRST[fp] * Tp_22)
+      
+        
+      M22[vstarts[ep]:vstarts[ep+1]-1, vstarts[em]:vstarts[em+1]-1] += (lop[ep].Hinv * (sJZ_22p - d * 0.5 * TTp_22) * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] + 
+                                                                      -  aa * 0.5*lop[ep].Hinv * lop[ep].eRS[fp] * lop[ep].H[fp] * R * lop[em].eRST[fm] * Tm_22)
         
     end
   end
@@ -1212,6 +1250,9 @@ function bcstarts(FToB, FToE, FToLF, bctype, Nr, Ns)
     end
     bcstarts                                      # return array of indices
 end
+
+
+
 
 
 #{{{ connectivityarrays
@@ -1260,7 +1301,6 @@ function connectivityarrays(EToV, EToF)
         elseif nv[end:-1:1] == lv
           EToO[lf, e] = false
         else
-          @show e
           error("problem with connectivity")
         end
       end

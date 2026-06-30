@@ -12,7 +12,73 @@ function interp1(xpt, ypt, x)
   itp = interpolate(knots, ypt, Gridded(Linear()))
   itp(x)  # endpoints of x must be between xpt[1] and xpt[end]
 end
-    
+  
+
+# find_ind_withslowslip() differentiates b/t phases by defining:
+# interseismic: when max slip rate < 10^-9 m/s,
+# slow slip: when 10^-8 m/s < max slip rate < 10^-3 m/s
+# coseismic: when 10^-3 m/s < max slip rate 
+# mv is maximum slip rate (log10 m/s) 
+function find_ind_withslowslip(mv)
+
+  ind = [1]
+  int1 = 1
+  int2 = 0
+  slow = 0
+  cos = 0
+  postseismic = 0
+
+  for i = 1:length(mv)
+
+    if mv[i] > -8.6 && int1 == 1 && int2 == 0 && slow == 0 && cos == 0 && postseismic == 0 # if going from first inter to slow
+      @show "slow"
+      append!(ind, i);
+      int1 = 0;
+      slow = 1;
+    end
+
+    if mv[i] < -8.5 && int1 == 0 && int2 == 0 && slow == 1 && cos == 0 && postseismic == 0# go from slow to second int
+      @show "inter2"
+      append!(ind, i);
+      int1 = 0
+      int2 = 1;
+      slow = 0;
+    end
+
+    if mv[i] > -3 && int1 == 0 && int2 == 1 && slow == 0 && cos == 0 && postseismic == 0# go from int to coseismic
+      @show "coseismic"
+      append!(ind, i)
+      int1 = 0
+      int2 = 0
+      cos = 1
+    end
+
+     if mv[i] < -3 && int1 == 0 && int2 == 0 && slow == 0 && cos == 1 && postseismic == 0# go from cos to postseismic
+      @show "post"
+      append!(ind, i-3)
+      int1 = 0
+      int2 = 0
+      cos = 0
+      postseismic = 1
+    end
+
+     if mv[i] < -8.8 && int1 == 0 && int2 == 0 && slow == 0 && cos == 0 && postseismic == 1# go from postseismic to interseismic 1
+      @show "inters 1"
+      append!(ind, i)
+      int1 = 1
+      int2 = 0
+      cos = 0
+      postseismic = 0
+    end
+  end
+
+
+  ind = append!(ind, length(mv));  #tack on for plotting any part of an incomplete coseismic/interseismic phase
+  
+
+  return ind
+end
+
 
 
 # find_ind() differentiates b/t phases by defining
@@ -59,10 +125,14 @@ function plot_slip(filename; headerlines=1, vert_limits = (-40, 0))
   slip = grid[2:sz[1], 3:sz[2]]
   N = size(slip)[2]
 
+  maxV = maxV[625:end]
+  T = T[625:end]
+  slip = slip[625:end,:]
+  slip0 = 0 .* slip[1,:]
 
   ind = find_ind(maxV);        #finds indices for inter/co-seismic phases
   interval = [5*31556926 1]   #plot every 5 years and every 1 second
-  
+  ss_interval = 31556926/365 # plot slow slip every day
   ct = 0   #this counts the number of events
 
 
@@ -75,14 +145,15 @@ function plot_slip(filename; headerlines=1, vert_limits = (-40, 0))
     W1 = interp1(T,slip[:,1],T1)';
     
     for j = 2:N 
-      w1 = interp1(T,slip[:,j],T1)';
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+
       W1 = [W1; w1]
     end
 
     if i == 1
-      plt.plot(W1, flt_loc, color = "blue", ls = "none", marker = ".", markersize = "0.5"); #interseismic phase
+      plt.plot(W1, flt_loc, color = "blue")#, ls = "none", marker = ".", markersize = "0.5"); #interseismic phase
     else
-      plt.plot(W1, flt_loc, color = "blue", ls = "none", marker = ".", markersize = "0.5"); #interseismic phase
+      plt.plot(W1, flt_loc, color = "blue")#, ls = "none", marker = ".", markersize = "0.5"); #interseismic phase
     end
 
    
@@ -91,11 +162,11 @@ function plot_slip(filename; headerlines=1, vert_limits = (-40, 0))
 
     W1 = interp1(T,slip[:,1],T1)';
     for j = 2:N 
-      w1 = interp1(T,slip[:,j],T1)';
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
       W1 = [W1; w1]
     end
 
-    plt.plot(W1, flt_loc, color = "red", ls = "none", marker = ".", markersize = "0.5"); #coseismic phase
+    plt.plot(W1, flt_loc, color = "red")#, ls = "none", marker = ".", markersize = "0.5"); #coseismic phase
 
     ct = ct+1;
   end
@@ -107,7 +178,7 @@ function plot_slip(filename; headerlines=1, vert_limits = (-40, 0))
   W1 = interp1(T,slip[:,1],T1)';
       
       for j = 2:N 
-        w1 = interp1(T,slip[:,j],T1)';
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
         W1 = [W1; w1]
       end
       if i == 1
@@ -120,6 +191,152 @@ function plot_slip(filename; headerlines=1, vert_limits = (-40, 0))
       plt.ylabel("Distance Down Dip (km)");
       plt.ylim(vert_limits)
 end
+
+
+function plot_with_slow_slip(filename; headerlines=1, vert_limits = (-40, 0))
+
+  grid = readdlm(filename, Float64, skipstart=headerlines)
+  sz = size(grid)
+  flt_loc = grid[1,3:end]
+  if flt_loc[end] > 0
+    flt_loc = -flt_loc
+  end
+
+  T = grid[2:sz[1],1]
+  maxV = grid[2:end, 2]
+  slip = grid[2:sz[1], 3:sz[2]]
+  N = size(slip)[2]
+
+  maxV = maxV[1205:end]
+  T = T[1205:end]
+  slip = slip[1205:end,:]
+  slip0 = slip[1,:]
+  ind = find_ind_withslowslip(maxV);        #finds indices for inter/slow/co-seismic phases
+
+  #ind = [1 39 43 51 233 241 295 298 307 485 498 548]
+  
+  interval = [5*31556926 (1/(2)).*31556926 5*31556926 1 (1/(2)).*31556926]   #plot every 5 years, 6 mos. and every 1 second
+  
+  ct = 0   #this counts the number of events
+
+
+  #Assumes an initial interseismic period
+  #This for-loop only plots completed phases
+  for i = 1:5:20#length(ind)
+    
+    T1 = T[ind[i]]:interval[1]:T[ind[i+1]];
+    @show "interseismic 1"
+ @show size(T1)
+ 
+    W1 = interp1(T,slip[:,1],T1)';
+    
+    for j = 2:N 
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+
+      W1 = [W1; w1]
+    end
+
+    if i == 1
+      plt.plot(W1, flt_loc, color = "blue")#, ls = "none"), marker = ".", markersize = "0.5"); #interseismic phase
+    else
+      plt.plot(W1, flt_loc, color = "blue")#, ls = "none", marker = ".", markersize = "0.5"); #interseismic phase
+    end
+    plt.xlabel("Cumulative Slip (m)");
+    plt.ylabel("Distance Down Dip (km)");
+    plt.ylim(vert_limits)
+   
+    T1 = T[ind[i+1]]:interval[2]:T[ind[i+2]];
+    @show "slow"
+ @show size(T1)
+
+    W1 = interp1(T,slip[:,1],T1)';
+    for j = 2:N 
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+      W1 = [W1; w1]
+    end
+
+    plt.plot(W1, flt_loc, color = "cyan")#, ls = "none", marker = ".", markersize = "0.5"); #coseismic phase
+
+
+    T1 = T[ind[i+2]]:interval[3]:T[ind[i+3]];
+    @show "interseismic 2"
+ @show size(T1)
+
+    W1 = interp1(T,slip[:,1],T1)';
+    for j = 2:N 
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+      W1 = [W1; w1]
+    end
+
+    plt.plot(W1, flt_loc, color = "blue")#, ls = "none", marker = ".", markersize = "0.5"); #coseismic phase
+
+
+
+    T1 = T[ind[i+3]]:interval[4]:T[ind[i+4]];
+    @show "coseismic"
+    @show size(T1)
+
+    W1 = interp1(T,slip[:,1],T1)';
+    for j = 2:N 
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+      W1 = [W1; w1]
+    end
+
+    plt.plot(W1, flt_loc, color = "red")#, ls = "none", marker = ".", markersize = "0.5"); #coseismic phase
+
+
+     T1 = T[ind[i+4]]:interval[5]:T[ind[i+5]];
+     @show "post"
+    @show size(T1)
+
+    W1 = interp1(T,slip[:,1],T1)';
+    for j = 2:N 
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+      W1 = [W1; w1]
+    end
+
+    plt.plot(W1, flt_loc, color = "cyan")#, ls = "none", marker = ".", markersize = "0.5"); #coseismic phase
+
+    ct = ct+1;
+  end
+
+  
+  # plot remainder of an incomplete interseismic period:
+  # i = length(ind)-1;
+  # T1 = T[ind[i]]:interval[1]:T[ind[i+1]];
+  # W1 = interp1(T,slip[:,1],T1)';
+      
+  #     for j = 2:N 
+  #       w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+  #       W1 = [W1; w1]
+  #     end
+  #     if i == 1
+  #       plt.plot(W1, flt_loc, color = "blue", ls = "none", marker = ".", markersize = "0.5") #interseismic phase
+  #     else
+  #       plt.plot(W1, flt_loc, color = "blue", ls = "none", marker = ".", markersize = "0.5") #interseismic phase
+  #     end
+
+  
+end
+
+
+
+
+function plot_max_slip_rate(filename; start_idx = 1, headerlines=1, vert_limits = (-40, 0))
+
+  grid = readdlm(filename, Float64, skipstart=headerlines)
+  sz = size(grid)
+  T = grid[2:sz[1],1]
+  T = T./31556926
+  maxV = grid[2:end, 2]
+ 
+  #plt.plot(T[start_idx:end],maxV[start_idx:end], color = "blue", marker = ".", )
+  plt.plot(maxV[start_idx:end], color = "blue", marker = ".", )
+  plt.xlabel("Time (yrs)");
+  plt.ylabel("Max(V) (m/s)");
+end
+
+
 
 function plot_global(field, filename)
 
@@ -172,15 +389,19 @@ function plot_fault_time_series(field, filename)
     y = grid[9:sz[1],4]
     plt.plot(T, y)
     ylabel("shear stress [MPa]")
+  elseif field == "normal_stress"
+    y = grid[9:sz[1],5]
+    plt.plot(T, y)
+    ylabel("normal stress [MPa]")
   elseif field == "state"
-    y = grid[9:sz[1],7]
+    y = grid[9:sz[1],6]
     plt.plot(T, y)
     ylabel("state")
   else
     print("field not recognized")
   end
   xlabel("time [yr]")
-  gui()
+  #gui()
     #return nothing
 end
 
@@ -464,7 +685,7 @@ function better_plot_solution(u, nelems, vstarts, Nr, Ns, lop)
 end
 
 
-function setupfaultcoord(lop, FToB, FToE, FToLF, faults)
+function setupfaultcoord(lop, FToB, FToE, FToLF, faults, psi)
   T = Float64
   fault_coords = Matrix{Float64}(undef, 0, 2) # intialize with length 0; will be appended
 
@@ -477,7 +698,8 @@ function setupfaultcoord(lop, FToB, FToE, FToLF, faults)
         (lf1, _) = FToLF[:, f] # get element's local face
         xf = lop[e1].facecoord[1][lf1] # get physical coordinates of element's local face
         yf = lop[e1].facecoord[2][lf1]
-        fault_coords = [fault_coords; [xf yf]]
+        xdf = yf ./ sind(psi)
+        fault_coords = [fault_coords; [xf xdf]]
       end
   end
 
@@ -531,6 +753,7 @@ function setupfaultstations(locations, lop, FToB, FToE, FToLF, faults)
           t=Array{T, 1}(undef, 0),
           data=ntuple(n->(V=Array{T, 1}(undef, 0), #initialize as length 0, since will be appended
                           τ=Array{T, 1}(undef, 0),
+                          σ=Array{T, 1}(undef, 0),
                           θ=Array{T, 1}(undef, 0),
                           δ=Array{T, 1}(undef, 0)),
                       numstations))
@@ -600,6 +823,7 @@ function savedatafields(ψδ, t, i, stations, fault,  V_0, FToδstarts, p, base_
                                    p.RSV0))
         push!(stations.data[s].δ, δ[n])
         push!(stations.data[s].τ, p.τ[n] - p.η * V[n])
+        push!(stations.data[s].σ, p.σ[n])
       end
       println("took a step")
   
@@ -643,9 +867,10 @@ function savedatafields(ψδ, t, i, stations, fault,  V_0, FToδstarts, p, base_
             V = stations.data[s].V
             θ = stations.data[s].θ
             τ = stations.data[s].τ
+            σ = stations.data[s].σ
             for n = 1:length(t)
               
-              write(f, "$(t[n]) $(δ[n]) $(log10(abs(V[n]))) $(τ[n]) $(log10(θ[n]))\n")
+              write(f, "$(t[n]) $(δ[n]) $(log10(abs(V[n]))) $(τ[n]) $(σ[n]) $(log10(θ[n]))\n")
             end
           end
         end
@@ -655,6 +880,7 @@ function savedatafields(ψδ, t, i, stations, fault,  V_0, FToδstarts, p, base_
           empty!(stations.data[s].V)
           empty!(stations.data[s].δ)
           empty!(stations.data[s].τ)
+          empty!(stations.data[s].σ)
           empty!(stations.data[s].θ)
         end
         empty!(fault.Vmax)
@@ -690,9 +916,10 @@ function savedatafields(ψδ, t, i, stations, fault,  V_0, FToδstarts, p, base_
             V = stations.data[s].V
             θ = stations.data[s].θ
             τ = stations.data[s].τ
+            σ = stations.data[s].σ
             for n = 1:length(t)
               
-              write(f, "$(t[n]) $(δ[n]) $(log10(abs(V[n]))) $(τ[n]) $(log10(θ[n]))\n")
+              write(f, "$(t[n]) $(δ[n]) $(log10(abs(V[n]))) $(τ[n]) $(σ[n]) $(log10(θ[n]))\n")
             end
           end
         end
@@ -703,6 +930,7 @@ function savedatafields(ψδ, t, i, stations, fault,  V_0, FToδstarts, p, base_
           empty!(stations.data[s].V)
           empty!(stations.data[s].δ)
           empty!(stations.data[s].τ)
+          empty!(stations.data[s].σ)
           empty!(stations.data[s].θ)
         end
         empty!(fault.Vmax)
@@ -757,6 +985,7 @@ function savefaultstation(ψδ, t, i, stations, FToδstarts, p, base_name="",
                                    p.RSV0))
         push!(stations.data[s].δ, δ[n])
         push!(stations.data[s].τ, p.τ[n] - p.η * V[n])
+         push!(stations.data[s].σ, p.σ)
       end
       println("took a step")
       println(stations.t)
@@ -772,8 +1001,9 @@ function savefaultstation(ψδ, t, i, stations, FToδstarts, p, base_name="",
             V = stations.data[s].V
             θ = stations.data[s].θ
             τ = stations.data[s].τ
+            σ = stations.data[s].σ
             for n = 1:length(t)
-              write(f, "$(t[n]) $(δ[n]) $(log10(abs(V[n]))) $(τ[n]) $(log10(θ[n]))\n")
+              write(f, "$(t[n]) $(δ[n]) $(log10(abs(V[n]))) $(τ[n]) $(σ[n]) $(log10(θ[n]))\n")
             end
           end
         end

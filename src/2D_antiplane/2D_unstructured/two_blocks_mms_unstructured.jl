@@ -319,7 +319,7 @@ rates = zeros(length(Nr)-1)
 
 for n = 1:length(Nr)
 #n = 3
-    (u, uexact, H̃1, H̃2, lop1, lop2, vstarts) = antiplane_solve(Nr[n], Ns[n], SBPp)
+    (u, uexact, H̃1, H̃2, lop1, lop2, vstarts) = plane_solve(Nr[n], Ns[n], SBPp)
     #pp = lop1.eRST[2]*lop1.T[2]*u[vstarts[1]:vstarts[2]-1]
     #mm = lop2.eRST[2]*lop2.T[2]*u[vstarts[2]:vstarts[3]-1]
     # @show pp

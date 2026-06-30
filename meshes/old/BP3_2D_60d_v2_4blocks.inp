@@ -1,0 +1,112 @@
+*HEADING
+cubit(ttanyerickson/Desktop/test_mesh/BP3_2D_60d_v2_4blocks.inp): 05/07/2026: 10
+version: 2024.8
+**
+********************************** P A R T S **********************************
+*PART, NAME=Part-Default
+**
+********************************** N O D E S **********************************
+*NODE, NSET=ALLNODES
+       1,    4.000000e+01,   -6.928203e+01,    0.000000e+00
+       2,    2.000000e+01,   -3.464102e+01,    0.000000e+00
+       3,    0.000000e+00,    0.000000e+00,    0.000000e+00
+       4,    8.000000e+01,   -6.928203e+01,    0.000000e+00
+       5,    4.000000e+01,    0.000000e+00,    0.000000e+00
+       6,   -4.000000e+01,    0.000000e+00,    0.000000e+00
+       7,    0.000000e+00,   -6.928203e+01,    0.000000e+00
+       8,    6.000000e+01,   -3.464102e+01,    0.000000e+00
+       9,   -2.000000e+01,   -3.464102e+01,    0.000000e+00
+**
+********************************** E L E M E N T S ****************************
+*ELEMENT, TYPE=S4R, ELSET=EB1
+       1,       1,       2,       9,       7
+       2,       2,       3,       6,       9
+*ELEMENT, TYPE=S4R, ELSET=EB2
+       3,       1,       4,       8,       2
+       4,       2,       8,       5,       3
+**
+********************************** S I D E S E T S **********************************
+*ELSET, ELSET=SS1_E2
+       3,       4
+*ELSET, ELSET=SS1_E3
+       1,       2
+*SURFACE, NAME=SS1
+SS1_E2, E2
+SS1_E3, E3
+*ELSET, ELSET=SS2_E1
+       3
+*ELSET, ELSET=SS2_E2
+       2
+*ELSET, ELSET=SS2_E3
+       4
+*ELSET, ELSET=SS2_E4
+       1
+*SURFACE, NAME=SS2
+SS2_E1, E1
+SS2_E2, E2
+SS2_E3, E3
+SS2_E4, E4
+*ELSET, ELSET=SS7_E1
+       2
+*ELSET, ELSET=SS7_E4
+       4
+*SURFACE, NAME=SS7
+SS7_E1, E1
+SS7_E4, E4
+*ELSET, ELSET=SS8_E1
+       1
+*ELSET, ELSET=SS8_E4
+       3
+*SURFACE, NAME=SS8
+SS8_E1, E1
+SS8_E4, E4
+**
+********************************** P R O P E R T I E S ************************
+*SHELL SECTION, ELSET=EB1, SECTION INTEGRATION=SIMPSON, MATERIAL=Default-Steel
+1.000000e+00
+*SHELL SECTION, ELSET=EB2, SECTION INTEGRATION=SIMPSON, MATERIAL=Default-Steel
+1.000000e+00
+**
+*END PART
+**
+**
+**
+********************************** E N D   P A R T S **********************************
+**
+**
+********************************** A S S E M B L Y ************************************
+**
+*ASSEMBLY, NAME=ASSEMBLY1
+**
+*INSTANCE, NAME=Part-Default_1, PART=Part-Default
+*END INSTANCE
+**
+*END ASSEMBLY
+**
+**
+**
+*MATERIAL, NAME = Default-Steel
+*ELASTIC, TYPE=ISOTROPIC
+2.068000e+05, 2.900000e-01
+*DENSITY
+7.000000e-06
+*CONDUCTIVITY,TYPE=ISO
+4.500000e-02
+*SPECIFIC HEAT
+5.000000e+02
+**
+**
+************************************** H I S T O R Y *************************************
+**
+*PREPRINT
+**
+**************************************** S T E P 1 ***************************************
+*STEP,INC=100,NAME=Default Set
+**
+*STATIC
+1, 1, 1e-05, 1
+**
+**
+**
+**
+*END STEP

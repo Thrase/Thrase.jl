@@ -58,6 +58,107 @@ function main()
 
    # Read in the unstructured mesh input file:
   (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/"*meshfile)
+ 
+#verts = [-40 0 40 -40 0 40;
+#              -40 -40 -40 0 0 0];
+
+ #   FToB = [1; 7; 1; 2; 2; 2; 2];
+#    #FToB = [1; 1; 1; 1; 1; 1; 1];
+
+
+# #    #  same orientation
+    # EToV = [1 2; 2 3; 4 5; 5 6];
+    # EToF = [1 2; 
+    #         2 3;
+    #         6 7;
+    #         4 5];
+
+#   #  different orientation
+#     EToV = [1 6; 2 5; 4 3; 5 2];
+#     EToF = [1 3; 
+#             2 2;
+#             4 5;
+#             6 7];
+    
+#   EToDomain = [1 2]
+
+#     Lx = 40
+#     Wf = 20
+#     xd = Wf*cosd(psi)
+#     yd = 2*Wf*sind(psi)
+#     verts = [-Lx+xd  0+xd    -Lx   0  Lx+xd      Lx  -Lx+2*xd      0+2*xd     Lx+2*xd; 
+#              -yd/2  -yd/2     0    0    -yd/2     0  -yd  -yd  -yd];
+
+#  FToB = [1; 7; 1; 2; 2; 0; 0; 1; 7; 1; 2; 2];  # boundary/interface conditions
+
+# # same:
+    #  EToV = [1 7 2 8;
+    # 2 8 5 9;
+    # 3 1 4 2;
+    # 4 2 6 5]
+
+    # EToF = [1 8 2 9;
+    # 2 9 3 10;
+    # 6 11 7 12;
+    # 4 6 5 7]
+
+    # right side diff
+
+    #      EToV = [1 7 5 9;
+    # 2 8 6 5;
+    # 3 1 2 8;
+    # 4 2 4 2]
+
+    # EToF = [1 8 7 12;
+    # 2 9 5 7;
+    # 6 11 3 10;
+    # 4 6 2 9]
+
+# #     # left side different orientation
+        # EToV = [2 8 2 8;
+        # 4 2 5 9;
+        # 1 7 4 2;
+        # 3 1 6 5]
+
+        # EToF = [6 11 2 9;
+        # 4 6 3 10;
+        # 2 9 7 12;
+        # 1 8 5 7]
+
+
+# # #     # other diff orient
+    # EToV = [4 2 2 8;
+    # 3 1 5 9;
+    # 2 8 4 2;
+    # 1 7 6 5]
+
+    # EToF = [2 9 2 9;
+    # 1 8 3 10;
+    # 4 6 7 12;
+    # 6 11 5 7]
+# # #     # other diff orient
+#     EToV = [3 1 2 8;
+#     1 7 5 9;
+#     4 2 4 2;
+#     2 8 6 5]
+
+#     EToF = [4 6 2 9;
+#     6 11 3 10;
+#     1 8 7 12;
+#     2 9 5 7]
+
+# #     # other diff orient
+ #   EToV = [1 1 2 8;
+#     2 7 5 9;
+#     3 2 4 2;
+#     4 8 6 5]
+
+#     EToF = [1 6 2 9;
+#    2 11 3 10;
+#     6 8 7 12;
+#     4 9 5 7]
+    # EToDomain = [1 1 2 2]
+
 
     # number of elements and faces
     (nelems, nfaces) = (size(EToV, 2), size(FToB, 1))
@@ -87,7 +188,6 @@ function main()
 
     # Secondary Grid Arrays:
     (FToE, FToLF, EToO, EToS) = connectivityarrays(EToV, EToF)
-
 
     ######### create local operators on each block/element by applying coordinate transform
     # Create an empty dictionary to store the operators;
@@ -153,10 +253,21 @@ function main()
         lop[e] = locoperator(SBPp, Nr[e], Ns[e], exact_mu, exact_lambda, metrics, FToB[EToF[:, e]]) 
     end
 
-    # Calculate neighboring penalty parameters and add to lop 
+
+      # Calculate neighboring penalty parameters and add to lop 
     for e = 1:nelems
         lop[e].neighborZ  .= calculate_neighbors(lop, e, FToB, EToF, FToE, FToLF, EToO)
     end
+    
+  
+    # @show lop[4].neighborZ[1][1, 1][1, 1]
+    # @show lop[4].neighborZ[1][1, 1][end, end]
+  
+    # @show lop[2].neighborZ[3][1, 1][1, 1]
+    # @show lop[2].neighborZ[3][1, 1][end, end]
+    
+    # poo
+
     
     # Assemble the global volume operator and compute LU factorization:
     A = global_operator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
@@ -164,6 +275,7 @@ function main()
 
     # Get unique array indices for the faces corresponding to the fault/jump interface
     FToδstarts = bcstarts(FToB, FToE, FToLF, (RS_FAULT, VP_FAULT), Nr, Ns)
+
 
     ############ END COORDINATE TRANSFORM
 
@@ -183,6 +295,7 @@ function main()
         end
             
     end
+
     
     bc_Dirichlet = (lf, x, y, e, δ, t, EToDomain) -> creep(x,y,t,e,EToDomain)
     bc_Neumann   = (lf, x, y, nx, ny, e, δ, t, EToDomain) -> [zeros(size(x)), zeros(size(x))]
@@ -214,12 +327,10 @@ function main()
     # initial slip vector
     δ = zeros(δNp, 2) # fault parallel (slip) followed by fault normal (opening)
   
-  
-      # fill in initial boundary data into b
+    # fill in initial boundary data into b
     for e = 1:nelems
         loc_bdry_vec_v2!((@view b[vstarts[e]:vstarts[e+1]-1, :]), lop[e], FToB[EToF[:,e]], EToF, FToE, FToLF, bc_Dirichlet, bc_Neumann, in_jump, (e, δ, t, EToDomain))
     end
-   
    
     U = A \ b[:] # solve linear system with a backsolve to obtain initial displacements u, w
     u = U[1:VNp]
@@ -264,7 +375,7 @@ function main()
     #         nx = lop[e1].nx
     #         δrng = FToδstarts[f]:(FToδstarts[f+1]-1)
     #         for n = 1:length(δrng)
-    #             τ0[δrng[n]] = sign(nx[lf1][n])*abs(τ0[δrng[n]]) # TODO wtf
+    #             τ0[δrng[n]] = sign(nx[lf1][n])*abs(τ0[δrng[n]]) # TODO WTF is this for.
     #         end
     #     end
     # end
@@ -306,8 +417,8 @@ function main()
     stations = setupfaultstations(stations_locations, lop, FToB, FToE, FToLF,
                                 (RS_FAULT, VP_FAULT))
 
-     fault = setupfaultcoord(lop, FToB, FToE, FToLF,
-                                (RS_FAULT, VP_FAULT), psi) 
+    fault = setupfaultcoord(lop, FToB, FToE, FToLF,
+                                (RS_FAULT, VP_FAULT)) 
 
 
 

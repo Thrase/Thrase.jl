@@ -1,0 +1,90 @@
+# Parallelogram simple mesh for BP9-QD (2D) with 60 or 30 degree dipping fault 
+
+# RUN WITH CUBIT 2024.8
+
+# Set units to SI.
+${Units('si')}
+
+#---------------
+reset
+
+# 60 degrees:
+#${psi = pi/3}
+#${cospsi = 0.5}
+#${sinpsi = 0.866}
+
+# 30 degrees:
+${psi = pi/6}
+${cospsi = 0.866}
+${sinpsi = 0.5}
+
+
+${Lx=120}
+${L2 = 120}
+${xL = L2*cospsi}
+${yL = L2*sinpsi}
+
+${Wf=40}
+${xd = Wf*cospsi}
+${yd = Wf*sinpsi}
+
+
+${H=15}
+${h=3}
+
+${h1=8}
+${h2=30}
+
+#create vertices of two parallelograms
+create vertex {-Lx+xL} {-yL} {0}
+create vertex {Lx+xL} {-yL} {0}
+create vertex {-Lx} {0} {0}
+create vertex {Lx} {0} {0}
+
+create surface vertex 1 2 4 3
+
+create vertex {0+xL} {-yL} {0}
+create vertex {0} {0} {0}
+create vertex {xd} {-yd} {0}
+
+
+create curve vertex 6 7 delete 
+create curve vertex 5 7 delete 
+
+
+imprint tolerant surface 1 with curve 5 6 merge
+delete curve 5 6
+
+
+Sideset 1 add curve 2 4         # Displacement (half V_p)
+Sideset 2 add curve 8 9 11 12  # Free
+Sideset 7 add curve 10           # Frictional fault
+Sideset 8 add curve 7           # steady sliding
+
+
+curve 11 9  scheme stretch first_size {h1} last_size {h2} start vertex 11
+mesh curve 11 9
+
+curve 7 scheme stretch first_size {h1} last_size {h2} start vertex 10
+mesh curve 7
+
+curve 10 size {h1}
+curve 10 scheme equal
+mesh curve 10
+
+
+curve 2 4 8 12 size {h2}
+curve 2 4 8 12 scheme equal
+mesh curve 2 4 8 12
+
+
+# simple mesh
+#surface 2 3 interval 1
+mesh surface 2 3
+
+block 1 add surface 3
+block 2 add surface 2
+
+export Abaqus "/Users/brittanyerickson/Desktop/test_mesh/BP9_2D_30d.inp" overwrite
+
+

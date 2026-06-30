@@ -11,6 +11,7 @@ function odefun(dψV, ψδ, p, t)
   Vp = p.Vp
   A = p.A
   lop = p.lop
+  neighborZ = p.neighborZ
   EToF = p.EToF
   EToS = p.EToS
   FToE = p.FToE
@@ -163,10 +164,10 @@ function odefun(dψV, ψδ, p, t)
      # compute traction on fault as average of both sides, map to fault orientation:
       if EToO[lf2, e2]
         @views Δτ[δrng] .= (Δτ1 .+ Δτ2) ./ 2
-        @views Δσ[δrng] .= (Δσ1 .+ Δσ2) ./ 2 
+         @views Δσ[δrng] .= 0 .* (Δσ1 .+ Δσ2) ./ 2 
       else
         @views Δτ[δrng] .= (Δτ1 .+ Δτ2[end:-1:1]) ./ 2 
-        @views Δσ[δrng] .= (Δσ1 .+ Δσ2[end:-1:1]) ./ 2 
+        @views Δσ[δrng] .= 0 .* (Δσ1 .+ Δσ2[end:-1:1]) ./ 2 
       end
 
   
@@ -248,7 +249,6 @@ function odefun(dψV, ψδ, p, t)
         Δσ1 = nxf1 .* t1 .+ nyf1 .* t2   
         Δσ2 = nxf2 .* t3 .+ nyf2 .* t4
       
-
        if EToO[lf2, e2]
         @views Δτ[δrng] .= (Δτ1 .+ Δτ2) ./ 2
         @views Δσ[δrng] .= (Δσ1 .+ Δσ2) ./ 2 

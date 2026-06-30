@@ -30,7 +30,7 @@ function odefun(dψV, ψδ, p, t)
   μshear = p.μshear
   RSa = p.RSa
   RSb = p.RSb
-  σn = p.σn
+  σmin = p.σmin
   η = p.η
   RSV0 = p.RSV0
   τ0 = p.τ0
@@ -183,7 +183,8 @@ function odefun(dψV, ψδ, p, t)
         VR = abs(τ[δn] / η)
         VL = -VR
         Vn = V1[n]
-        (Vnew, ~, iter) = newtbndv((V) -> rateandstate(V, ψ[δn], σ[δn],
+        σnbar = max(σmin, σ[δn])
+        (Vnew, ~, iter) = newtbndv((V) -> rateandstate(V, ψ[δn], σnbar,
                                                        τ[δn], η, RSa[δn],
                                                        RSV0),
                                    VL, VR, Vn; atolx=1e-12, rtolx=1e-12,
@@ -214,8 +215,7 @@ function odefun(dψV, ψδ, p, t)
          end
 
       end
-      
-      
+   
     elseif FToB[f] == VP_FAULT
 
       

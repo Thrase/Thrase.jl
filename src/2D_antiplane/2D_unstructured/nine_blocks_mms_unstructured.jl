@@ -242,7 +242,7 @@ let
     # mesh file side set type to actually boundary condition type
     bc_map = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN, BC_JUMP_INTERFACE]
    
-    (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/plate_test.inp")
+    (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("../meshes/plate_test.inp")
 
     # modify a bit to change orientation
     EToV[:, 7] = [10; 5; 15; 7]
