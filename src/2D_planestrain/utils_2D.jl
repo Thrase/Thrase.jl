@@ -111,7 +111,7 @@ end
 
 # plot_slip will plot slip contours from devol.txt - every 5 years in blue during interseismic, 
 # every 1 second in red during coseismic
-function plot_slip(filename; headerlines=1, vert_limits = (-40, 0))
+function plot_slip(filename; idx_start = 1, headerlines=1, vert_limits = (-40, 0))
 
   grid = readdlm(filename, Float64, skipstart=headerlines)
   sz = size(grid)
@@ -125,10 +125,10 @@ function plot_slip(filename; headerlines=1, vert_limits = (-40, 0))
   slip = grid[2:sz[1], 3:sz[2]]
   N = size(slip)[2]
 
-  maxV = maxV[625:end]
-  T = T[625:end]
-  slip = slip[625:end,:]
-  slip0 = 0 .* slip[1,:]
+  maxV = maxV[idx_start:end]
+  T = T[idx_start:end]
+  slip = slip[idx_start:end,:]
+  slip0 = slip[1,:]
 
   ind = find_ind(maxV);        #finds indices for inter/co-seismic phases
   interval = [5*31556926 1]   #plot every 5 years and every 1 second
@@ -366,7 +366,7 @@ end
 
 # plot_fault_time_series will plot field "field" from "filename".
 # "field" has to be one of "slip", "V", "shear_stress", "state"
-function plot_fault_time_series(field, filename)
+function plot_fault_time_series(field, filename; indices_only = false)
 
   @show filename
   grid = readdlm(filename)#, Float64)  # some elements cannot be parsed as numbers, 
@@ -383,7 +383,11 @@ function plot_fault_time_series(field, filename)
     ylabel("slip [m]")
   elseif field == "slip_rate"
     y = grid[9:sz[1],3]
-    plt.plot(T, y)
+    if indices_only
+      plt.scatter([1:length(y)], y)
+    else
+      plt.plot(T, y)
+    end
     ylabel("slip rate [m/s]")
   elseif field == "shear_stress"
     y = grid[9:sz[1],4]
@@ -400,7 +404,11 @@ function plot_fault_time_series(field, filename)
   else
     print("field not recognized")
   end
-  xlabel("time [yr]")
+  if indices_only
+    xlabel("index")
+  else
+    xlabel("time [yr]")
+  end
   #gui()
     #return nothing
 end

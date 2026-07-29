@@ -32,7 +32,7 @@ function main()
     ### input parameters
     (pth, meshfile, Nx, Ny, sim_years, Vp, psi, ρ, ν, cs, σmin, 
     RSamin, RSamax, RSb, RSDc,
-    RSf0, RSV0, RSVinit, RSHt,RSHs, RSw, RSWf, SBPp) = read_params_planestrain(localARGS[1])
+    RSf0, RSV0, RSVinit, RSH ,RSHt, RSw, RSWf, SBPp) = read_params_planestrain(localARGS[1])
 
     ρw = 1.0
     K = 3.12
@@ -247,14 +247,11 @@ function main()
         xdf = yf ./ sind(psi)
         δrng = FToδstarts[f]:(FToδstarts[f+1]-1)
         for n = 1:length(δrng)
-            if 0 >= xdf[n] >= -RSHs 
-                 RSa[δrng[n]] = RSamax
-            elseif -RSHs > xdf[n] >= -(RSHs + RSHt)
-                RSa[δrng[n]] = ((RSamax - RSamin)/2) * xdf[n] + RSamax + (RSamax - RSamin)
-            elseif -(RSHs + RSHt) > xdf[n] >= -(RSHs + RSHt + RSw)
+        
+            if 0 >= xdf[n] >= -RSH
                  RSa[δrng[n]]  = RSamin
-            elseif -(RSHs + RSHt + RSw) > xdf[n] >= -(RSHs + RSHt + RSw + RSHt)
-                RSa[δrng[n]] = (-(RSamax - RSamin)/2) * xdf[n] + RSamin -8*(RSamax - RSamin)   
+            elseif -RSH > xdf[n] >= -(RSH + RSHt)
+                RSa[δrng[n]] = (-(RSamax - RSamin)/RSHt) * xdf[n] + RSamin - RSH *(RSamax - RSamin)/RSHt
             else             
                 RSa[δrng[n]]  = RSamax
             end
@@ -267,7 +264,7 @@ function main()
     end
     end
 
-#    plt.scatter(fault_nodes, RSa)
+   #plt.scatter(fault_nodes, RSa)
 
     # Set pre-stress according to benchmark description, using max normal stress
      σ0 = min.(100, sind(psi)*sind(psi) .* σ11_0 .+ cosd(psi)*cosd(psi) .* σ33_0)

@@ -4,8 +4,8 @@
 #
 # path to store output
 pth =./output/bp9-unstructured/
-# name of mesh file:
-meshfile=BP9_2D_60d.inp
+# name of mesh file (make sure this matches psi below):
+meshfile=BP9_2D_30d.inp
 # details of output data:
 # number of grid points in each dimension ON EACH ELEMENT/BLOCK
 # make sure to resolve h* and l_b; should be written as integer.
@@ -21,7 +21,7 @@ Vp = 1e-9
 # fault slip rate 
 # VL = 1e-9
 # dip angle - make sure this matches meshfile:
-psi = 60
+psi = 30
 # elastcity parameters
 ρ = 2.670
 ν = 0.25
@@ -37,8 +37,8 @@ RSDc = 0.56
 RSf0 = 0.6
 RSV0 = 1e-6
 RSVinit = 1e-9
+RSH = 16
 RSHt = 2
-RSHs = 2
 RSw = 12
 RSWf = 40
 #
