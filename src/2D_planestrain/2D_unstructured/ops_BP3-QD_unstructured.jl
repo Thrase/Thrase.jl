@@ -314,6 +314,17 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
   # Ds[1,:] = S0s[1,:]
   # Ds[end,:] = SNs[end,:]
 
+  # compute traction opererators - higher order at boundaries
+  Dr_high = copy(Dr)
+  Ds_high = copy(Ds)
+  Dr_high[1,:] = S0r[1,:]
+  Dr_high[end,:] = SNr[end,:]
+  Ds_high[1,:] = S0s[1,:]
+  Ds_high[end,:] = SNs[end,:]
+
+  # Dr .= Dr_high
+  # Ds .= Ds_high
+
 
   # {{{ 2D Identity matrices
   Ir = sparse(I, Nrp, Nrp)
@@ -449,6 +460,37 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
   T = (T_1, T_2, T_3, T_4)   
 
   
+
+  # {{{ discrete boundary traction operators in logical space on each of the 4 faces:
+  hT11_1 = -Sr0_11 - ((C12_1*Ds_high) ⊗ Ir)
+  hT12_1 = -Sr0_13 - ((C14_1*Ds_high) ⊗ Ir)
+  hT21_1 = -Sr0_31 - ((C32_1*Ds_high) ⊗ Ir)
+  hT22_1 = -Sr0_33 - ((C34_1*Ds_high) ⊗ Ir)
+
+  hT11_2 = SrN_11 + ((C12_2*Ds_high) ⊗ Ir)
+  hT12_2 = SrN_13 + ((C14_2*Ds_high) ⊗ Ir)
+  hT21_2 = SrN_31 + ((C32_2*Ds_high) ⊗ Ir)
+  hT22_2 = SrN_33 + ((C34_2*Ds_high) ⊗ Ir)
+
+  hT11_3 = -(Is ⊗ (C21_3*Dr_high)) - Ss0_22
+  hT12_3 = -(Is ⊗ (C32_3*Dr_high)) - Ss0_24
+  hT21_3 = -(Is ⊗ (C41_3*Dr_high)) - Ss0_42
+  hT22_3 = -(Is ⊗ (C43_3*Dr_high)) - Ss0_44
+
+  hT11_4 = (Is ⊗ (C21_4*Dr_high)) + SsN_22
+  hT12_4 = (Is ⊗ (C32_4*Dr_high)) + SsN_24
+  hT21_4 = (Is ⊗ (C41_4*Dr_high)) + SsN_42
+  hT22_4 = (Is ⊗ (C43_4*Dr_high)) + SsN_44
+ 
+
+  Th_1 = [[hT11_1] [hT12_1]; [hT21_1] [hT22_1]]
+  Th_2 = [[hT11_2] [hT12_2]; [hT21_2] [hT22_2]]
+  Th_3 = [[hT11_3] [hT12_3]; [hT21_3] [hT22_3]]
+  Th_4 = [[hT11_4] [hT12_4]; [hT21_4] [hT22_4]]
+  
+  T_high = (Th_1, Th_2, Th_3, Th_4)   
+
+
   
   mT11_1 = -Sr0_11 - ((C12_1*Ds) ⊗ Ir)
   mT12_1 = -Sr0_13 - ((C14_1*Ds) ⊗ Ir)
@@ -470,11 +512,15 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
   mT21_4 = (Is ⊗ (C41_4*Dr)) + SsN_42
   mT22_4 = (Is ⊗ (C43_4*Dr)) + SsN_44
 
-  ad = 0 # TODO: resolve with A&D
-  TT_1 = [[ad * mT11_1'] [ad * mT21_1']; [ad * mT12_1'] [ad * mT22_1']]
-  TT_2 = [[ad * mT11_2'] [ad * mT21_2']; [ad * mT12_2'] [ad * mT22_2']]
-  TT_3 = [[ad * mT11_3'] [ad * mT21_3']; [ad * mT12_3'] [ad * mT22_3']]
-  TT_4 = [[ad * mT11_4'] [ad * mT21_4']; [ad * mT12_4'] [ad * mT22_4']]
+  
+ad = 1
+bd = 1
+#WTF SOMETHING VERY WRONG WIHT mT21_1 or maybe it's' mT21_2 - check wherever it's being used - I cant' seem to have both present 
+  TT_1 = [[ad .* mT11_1'] [bd .* mT21_1']; [ad .* mT12_1'] [ad .* mT22_1']]
+  TT_2 = [[ad .* mT11_2'] [bd .* mT21_2']; [ad .* mT12_2'] [ad .* mT22_2']]
+  TT_3 = [[ad .* mT11_3'] [ad .* mT21_3']; [ad .* mT12_3'] [ad .* mT22_3']]
+  TT_4 = [[ad .* mT11_4'] [ad .* mT21_4']; [ad .* mT12_4'] [ad .* mT22_4']]
+
 
   TT = (TT_1, TT_2, TT_3, TT_4)   
   # }}}
@@ -483,10 +529,11 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
 
   # {{{ Dirichlet BC penalties
 
-  β = 1
+  β = 2
   d = 2 # dimension
  
-  # Z' penalty parameters (for Dirichlet BC) in logical space: #TODO these also need to be fixed - see interaface SATS
+  # Z' penalty parameters (for Dirichlet BC) in logical space: 
+  
   sJZ11_1 = β * (d ./ h1) * ((C11_1) ⊗ Ir) 
   sJZ12_1 = β * (d ./ h1) * ((C13_1) ⊗ Ir)
   sJZ21_1 = β * (d ./ h1) * ((C31_1) ⊗ Ir)
@@ -576,30 +623,35 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
   # }}}
 
 
-  # {{{ Interface Penalties #TODO Edit for plane strain
+  # {{{ Interface Penalties 
   # Z' penalty parameters (for interface Dirichlet conditions) in logical space:
 
-  IsJZ_1_11 =  β * (d ./ (4 * h1)) * (C11_1 ⊗ Ir) 
-  IsJZ_1_12 =  β * (d ./ (4 * h1)) * (C13_1 ⊗ Ir)
-  IsJZ_1_21 =  β * (d ./ (4 * h1)) * (C31_1 ⊗ Ir)
-  IsJZ_1_22 =  β * (d ./ (4 * h1)) * (C33_1 ⊗ Ir)  
+  ad = 1#TODO: resolve with A&D where ad = β
 
-  IsJZ_2_11 =  β * (d ./ (4 * h2)) * (C11_2 ⊗ Ir) 
-  IsJZ_2_12 =  β * (d ./ (4 * h2)) * (C13_2 ⊗ Ir)
-  IsJZ_2_21 =  β * (d ./ (4 * h2)) * (C31_2 ⊗ Ir)
-  IsJZ_2_22 =  β * (d ./ (4 * h2)) * (C33_2 ⊗ Ir)
-
-  IsJZ_3_11 =  β * (d ./ (4 * h3)) * (Is ⊗ C22_3) 
-  IsJZ_3_12 =  β * (d ./ (4 * h3)) * (Is ⊗ C24_3)  
-  IsJZ_3_21 =  β * (d ./ (4 * h3)) * (Is ⊗ C42_3) 
-  IsJZ_3_22 =  β * (d ./ (4 * h3)) * (Is ⊗ C44_3) 
-
-  IsJZ_4_11 =  β * (d ./ (4 * h4)) * (Is ⊗ C22_4)  
-  IsJZ_4_12 =  β * (d ./ (4 * h4)) * (Is ⊗ C24_4)  
-  IsJZ_4_21 =  β * (d ./ (4 * h4)) * (Is ⊗ C42_4) 
-  IsJZ_4_22 =  β * (d ./ (4 * h4)) * (Is ⊗ C44_4)
+  IsJZ_1_11 = β * (d ./ (4 * h1)) * (C11_1 ⊗ Ir)
+  IsJZ_1_12 = ad * β * (d ./ (4 * h1)) * (C13_1 ⊗ Ir)
+  IsJZ_1_21 = ad * β * (d ./ (4 * h1)) * (C31_1 ⊗ Ir)
+  IsJZ_1_22 = β * (d ./ (4 * h1)) * (C33_1 ⊗ Ir)  
 
 
+  IsJZ_2_11 = β * (d ./ (4 * h2)) * (C11_2 ⊗ Ir) 
+  IsJZ_2_12 = ad * β * (d ./ (4 * h2)) * ((C13_2) ⊗ Ir)
+  IsJZ_2_21 = ad * β * (d ./ (4 * h2)) * (C31_2 ⊗ Ir)
+  IsJZ_2_22 = β * (d ./ (4 * h2)) * (C33_2 ⊗ Ir)
+
+  IsJZ_3_11 = β * (d ./ (4 * h3)) * (Is ⊗ C22_3) 
+  IsJZ_3_12 = ad * β * (d ./ (4 * h3)) * (Is ⊗ C24_3)  
+  IsJZ_3_21 = ad * β * (d ./ (4 * h3)) * (Is ⊗ C42_3) 
+  IsJZ_3_22 = β * (d ./ (4 * h3)) * (Is ⊗ C44_3) 
+
+  IsJZ_4_11 = β * (d ./ (4 * h4)) * (Is ⊗ C22_4)  
+  IsJZ_4_12 = ad * β * (d ./ (4 * h4)) * (Is ⊗ C24_4)  
+  IsJZ_4_21 = ad * β * (d ./ (4 * h4)) * (Is ⊗ C42_4) 
+  IsJZ_4_22 = β * (d ./ (4 * h4)) * (Is ⊗ C44_4)
+
+
+
+  
   IsJZ_1 = [[IsJZ_1_11] [IsJZ_1_12]; [IsJZ_1_21] [IsJZ_1_22]]
   IsJZ_2 = [[IsJZ_2_11] [IsJZ_2_12]; [IsJZ_2_21] [IsJZ_2_22]]
   IsJZ_3 = [[IsJZ_3_11] [IsJZ_3_12]; [IsJZ_3_21] [IsJZ_3_22]]
@@ -611,7 +663,6 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
   neighborZ = [similar(IsJZ_1), similar(IsJZ_2), similar(IsJZ_3), similar(IsJZ_4)]
 
      
-  
   # {{{ RHS VECTOR
   # boundary data operators for Dirichlet faces 
   dB1_11 = Hinv * (T11_1 .- sJZ11_1)' * eRS[1] * H1    # multiplies first variable data, added to first
@@ -706,7 +757,7 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
   sJ = metrics.sJ,
   nx = metrics.nx,
   ny = metrics.ny,
-  sJZ, neighborZ)
+  sJZ, neighborZ, T_high)
 
 
 end
@@ -849,17 +900,16 @@ function loc_bdry_vec_v2!(ge, lop, LFToB, EToF, FToE, FToLF, bc_Dirichlet, bc_Ne
   
       # Jump in displacement
 
-      δ = in_jump(lf, xf[lf], yf[lf], bcargs...)  # this should return a two column vector containing slip components (parallel followed by normal)
+      δ = in_jump(lf, xf[lf], yf[lf], bcargs...)  # return a two column vector containing slip components (parallel followed by normal)
   
-      du =  -δ[:, 1] .* abs.(ny[lf]) # horizontal jump
+      du =  -δ[:, 1] .* abs.(ny[lf])   # horizontal jump
       dw =   δ[:, 1] .* abs.(nx[lf])  #vertical jump
 
 
-
-      A11 = -lop.Hinv * sJZ11 * lop.eRS[lf] * lop.H[lf] + 0.5 * lop.Hinv * lop.TT[lf][1, 1] * lop.eRS[lf] * lop.H[lf]
-      A21 = -lop.Hinv * sJZ21 * lop.eRS[lf] * lop.H[lf] + 0.5 * lop.Hinv * lop.TT[lf][1, 2] * lop.eRS[lf] * lop.H[lf]
-      A12 = -lop.Hinv * sJZ12 * lop.eRS[lf] * lop.H[lf] + 0.5 * lop.Hinv * lop.TT[lf][2, 1] * lop.eRS[lf] * lop.H[lf]
-      A22 = -lop.Hinv * sJZ22 * lop.eRS[lf] * lop.H[lf] + 0.5 * lop.Hinv * lop.TT[lf][2, 2] * lop.eRS[lf] * lop.H[lf]
+      A11 = -lop.Hinv * sJZ11 * lop.eRS[lf] * lop.H[lf] + 1 * 0.5 * lop.Hinv * lop.TT[lf][1, 1] * lop.eRS[lf] * lop.H[lf]
+      A21 = -lop.Hinv * sJZ21 * lop.eRS[lf] * lop.H[lf] + 1 * 0.5 * lop.Hinv * lop.TT[lf][1, 2] * lop.eRS[lf] * lop.H[lf]
+      A12 = -lop.Hinv * sJZ12 * lop.eRS[lf] * lop.H[lf] + 1 * 0.5 * lop.Hinv * lop.TT[lf][2, 1] * lop.eRS[lf] * lop.H[lf]
+      A22 = -lop.Hinv * sJZ22 * lop.eRS[lf] * lop.H[lf] + 1 * 0.5 * lop.Hinv * lop.TT[lf][2, 2] * lop.eRS[lf] * lop.H[lf]
       
   
       vf_1 = A11*du + A21*dw
@@ -881,21 +931,103 @@ end
 
 
 
-function computetraction(lop, lf, u1, u2)
+function computetraction(lop, e1, e2, lf1, lf2, u, w, urng1, urng2, EToF, EToO, FToδstarts, δ; correction = true)
 
 
-  T11 = lop.T[lf][1, 1]
-  T12 = lop.T[lf][1, 2]
-  T21 = lop.T[lf][2, 1]
-  T22 = lop.T[lf][2, 2]
+  T11 = lop[e1].T_high[lf1][1, 1]
+  T12 = lop[e1].T_high[lf1][1, 2]
+  T21 = lop[e1].T_high[lf1][2, 1]
+  T22 = lop[e1].T_high[lf1][2, 2]
 
-  sJ = lop.sJ[lf]
-  eRST = lop.eRST[lf]
+  sJ1 = lop[e1].sJ[lf1]
+  eRST = lop[e1].eRST[lf1]
+     
+  t1 = (eRST * (T11 * u[urng1] + T12 * w[urng1])) ./ sJ1
+  t2 = (eRST * (T21 * u[urng1] + T22 * w[urng1])) ./ sJ1
+  
 
-  t1 = (eRST * (T11 * u1 + T12 * u2)) ./ sJ   
-  t2 = (eRST * (T21 * u1 + T22 * u2)) ./ sJ  
+  T11 = lop[e2].T_high[lf2][1, 1]
+  T12 = lop[e2].T_high[lf2][1, 2]
+  T21 = lop[e2].T_high[lf2][2, 1]
+  T22 = lop[e2].T_high[lf2][2, 2]
 
-  return (t1, t2)
+  sJ2 = lop[e2].sJ[lf2]
+  eRST = lop[e2].eRST[lf2]
+     
+  t3 = (eRST * (T11 * u[urng2] + T12 * w[urng2])) ./ sJ2
+  t4 = (eRST * (T21 * u[urng2] + T22 * w[urng2])) ./ sJ2
+
+  # compute actual slip, by default this is with respect to minus side face orientation 
+  f = EToF[lf1, e1]  # Get global face number
+  δ1 = δ[FToδstarts[f]:(FToδstarts[f+1]-1), 1]  # WRT minus side face orientation
+
+  # compute displacement jumps from linear solve with respect to volume orientation
+
+  u1 = lop[e1].eRST[lf1]*u[urng1]
+  w1 = lop[e1].eRST[lf1]*w[urng1] 
+  u2 = lop[e2].eRST[lf2]*u[urng2]
+  w2 = lop[e2].eRST[lf2]*w[urng2]
+
+  du_minus = similar(u1)
+  dw_minus = similar(w1)
+  du_plus = similar(u2)
+  dw_plus = similar(w2)
+
+  δ_minus = similar(δ1)
+  δ_plus = similar(δ1)
+
+  if EToO[lf2, e2]
+    δ_minus .= δ1
+    δ_plus .= -δ1
+    du_minus .= u2 - u1
+    dw_minus .= w2 - w1
+    du_plus .=  u1 - u2
+    dw_plus .=  w1 - w2
+  else
+    δ_minus .= δ1
+    δ_plus .= -δ1[end:-1:1]
+    du_minus .= u2[end:-1:1] - u1
+    dw_minus .= w2[end:-1:1] - w1
+    du_plus .=  u1[end:-1:1] - u2
+    dw_plus .=  w1[end:-1:1] - w2
+  end
+
+      
+  #interface penalty terms wrt minus side face orientation
+  sJZ_11_minus = (lop[e1].IsJZ[lf1][1, 1])' + (lop[e1].neighborZ[lf1][1, 1])' 
+  sJZ_12_minus = (lop[e1].IsJZ[lf1][1, 2])' + (lop[e1].neighborZ[lf1][1, 2])' 
+  sJZ_21_minus = (lop[e1].IsJZ[lf1][2, 1])' + (lop[e1].neighborZ[lf1][2, 1])' 
+  sJZ_22_minus = (lop[e1].IsJZ[lf1][2, 2])' + (lop[e1].neighborZ[lf1][2, 2])' 
+
+  #interface penalty terms wrt plus side face orientation
+  sJZ_11_plus = (lop[e2].IsJZ[lf2][1, 1])' + (lop[e2].neighborZ[lf2][1, 1])' 
+  sJZ_12_plus = (lop[e2].IsJZ[lf2][1, 2])' + (lop[e2].neighborZ[lf2][1, 2])' 
+  sJZ_21_plus = (lop[e2].IsJZ[lf2][2, 1])' + (lop[e2].neighborZ[lf2][2, 1])' 
+  sJZ_22_plus = (lop[e2].IsJZ[lf2][2, 2])' + (lop[e2].neighborZ[lf2][2, 2])' 
+
+  
+  du_minus_actual = -δ_minus .* abs.(lop[e1].ny[lf1])   # horizontal jump
+  dw_minus_actual =  δ_minus .* abs.(lop[e1].nx[lf1])  #vertical jump
+  du_plus_actual =  -δ_plus  .* abs.(lop[e2].ny[lf2])   # horizontal jump
+  dw_plus_actual =   δ_plus  .* abs.(lop[e2].nx[lf2])  #vertical jump
+
+  # add corrections to traction wrt volume
+  c1 = lop[e1].eRST[lf1] * (sJZ_11_minus* lop[e1].eRS[lf1]*(du_minus .- du_minus_actual) .+ sJZ_12_minus* lop[e1].eRS[lf1]*(dw_minus - dw_minus_actual))
+  c2 = lop[e1].eRST[lf1] * (sJZ_21_minus* lop[e1].eRS[lf1]*(du_minus .- du_minus_actual) .+ sJZ_22_minus* lop[e1].eRS[lf1]*(dw_minus - dw_minus_actual))
+  c3 = lop[e2].eRST[lf2] * (sJZ_11_plus * lop[e2].eRS[lf2]*(du_plus  .- du_plus_actual) .+  sJZ_12_plus * lop[e2].eRS[lf2]*(dw_plus - dw_plus_actual))
+  c4 = lop[e2].eRST[lf2] * (sJZ_21_plus * lop[e2].eRS[lf2]*(du_plus  .- du_plus_actual) .+  sJZ_22_plus * lop[e2].eRS[lf2]*(dw_plus - dw_plus_actual))
+
+ 
+  # add in correction
+  if correction
+    t1 .+= c1 ./ sJ1
+    t2 .+= c2 ./ sJ1
+    t3 .+= c3 ./ sJ2
+    t4 .+= c4 ./ sJ2
+  end
+
+
+  return (t1, t2, t3, t4)
 end
 
 function rateandstate(V, psi, σn, ϕ, η, a, V0)
@@ -1097,8 +1229,7 @@ function global_operator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
       (em, ep) = FToE[:, f]  # find the two elements that share global face f.
       (fm, fp) = FToLF[:, f]  # find corresponding local faces corresponding to global face f.
      
-
-
+  
       # If face orientation on plus side does not match minus side, then flip
       Np = (fm <= 2 ? Ns[em]+1 : Nr[em]+1) # Set Np to be either Nr or Ns, depending on face
       if EToO[fp, ep]                     # orientation matches
@@ -1117,8 +1248,6 @@ function global_operator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
       sJZ_12p = (lop[ep].IsJZ[fp][1, 2])' + (lop[ep].neighborZ[fp][1, 2])' 
       sJZ_21p = (lop[ep].IsJZ[fp][2, 1])' + (lop[ep].neighborZ[fp][2, 1])' 
       sJZ_22p = (lop[ep].IsJZ[fp][2, 2])' + (lop[ep].neighborZ[fp][2, 2])' 
-
-  
 
       Tm_11 = lop[em].T[fm][1, 1]
       Tm_12 = lop[em].T[fm][1, 2]
@@ -1141,8 +1270,7 @@ function global_operator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
       TTp_21 = lop[ep].TT[fp][2, 1]
       TTp_22 = lop[ep].TT[fp][2, 2]
 
-
-    
+  
       # Local effects, for both plus and minus sides of face f, they should match signs:
       M11[vstarts[em]:vstarts[em+1]-1, vstarts[em]:vstarts[em+1]-1] += (-lop[em].Hinv * (sJZ_11m - 0.5 * TTm_11) * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] + 
                                                                       -  0.5*lop[em].Hinv * lop[em].eRS[fm] * lop[em].H[fm] * lop[em].eRST[fm] * Tm_11)

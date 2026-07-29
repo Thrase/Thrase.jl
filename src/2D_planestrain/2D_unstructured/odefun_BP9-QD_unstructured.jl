@@ -40,12 +40,9 @@ function odefun(dψV, ψδ, p, t)
   #fault_nodes = p.fault_nodes
   psi = p.psi
 
-  
 
   nelems = length(lop)
   nfaces = size(FToE, 2)
-
-
 
     # Set boundary data functions:
     function creep(x,y,t, e, EToDomain)
@@ -58,7 +55,16 @@ function odefun(dψV, ψδ, p, t)
         end
             
     end
-
+  # function creep(x,y,t, e, EToDomain)
+  #       if EToDomain[e] == 1 # bottom side fault
+  #           return [(Vp/2) .* t .+ 0 .* x .+ 0 .* y, 0 .* x .+ 0 .* y]
+  #       elseif EToDomain[e] == 2
+  #           return [-(Vp/2) .* t  .+ 0 .* x .+ 0 .* y, 0 .* x .+ 0 .* y]
+  #       else
+  #           error("shouldn't get here")
+  #       end
+            
+  #   end
 
   bc_Dirichlet = (lf, x, y, e, δ, t, EToDomain) -> creep(x,y,t,e,EToDomain)
   bc_Neumann   = (lf, x, y, nx, ny, e, δ, t, EToDomain) -> [zeros(size(x)), zeros(size(x))]
@@ -81,11 +87,7 @@ function odefun(dψV, ψδ, p, t)
         end
       end
     end
-  
-  if reject_step[1]
-    @show "oh great"
-    return
-  end
+
 
   current_time = t ./ 31556926
   #print("TIME [YRS] = $(current_time).\n")
@@ -94,7 +96,7 @@ function odefun(dψV, ψδ, p, t)
 
   ψ  = @view ψδ[        (1:δNp) ]
   δ1  = ψδ[  δNp .+ (1:δNp)]    # fault parallel jump
-  δ2  = ψδ[  2*δNp .+ (1:δNp)]  # fault perpendicular jump
+  δ2  = ψδ[  2*δNp .+ (1:δNp)]  # normal jump
   δ = [δ1 δ2]
 
   
@@ -104,8 +106,7 @@ function odefun(dψV, ψδ, p, t)
         loc_bdry_vec_v2!((@view b[vstarts[e]:vstarts[e+1]-1, :]), lop[e], FToB[EToF[:,e]], EToF, FToE, FToLF, bc_Dirichlet, bc_Neumann, in_jump, (e, δ, t, EToDomain))
   end
 
-  #@show b
-  #sleep(2)
+
   # solve for displacements everywhere in domain
   U = A \ b[:]
   VNp = Integer(length(U)/2)
@@ -146,21 +147,17 @@ function odefun(dψV, ψδ, p, t)
       nyf2 = lop[e2].ny[lf2]
       sJ2 = lop[e2].sJ[lf2]
 
-    
-
-      t1, t2 = computetraction(lop[e1], lf1, u[urng1], w[urng1])
-      t3, t4 = computetraction(lop[e2], lf2, u[urng2], w[urng2]) 
+      # compute tractions wrt to volume orientation; by default these include corrections
+      (t1, t2, t3, t4)  = computetraction(lop, e1, e2, lf1, lf2, u, w, urng1, urng2, EToF, EToO, FToδstarts, δ)
+      
+      # resolve tractions into shear and normal, these are still wrt volume orientation, not face:
+      Δτ1 = (-nyf1) .* t1 .+ nxf1 .* t2   
+      Δτ2 = (-nyf2) .* t3 .+ nxf2 .* t4
+      Δσ1 = nxf1 .* t1 .+ nyf1 .* t2   
+      Δσ2 = nxf2 .* t3 .+ nyf2 .* t4
 
   
-         Δτ1 = (-nyf1) .* t1 .+ nxf1 .* t2   
-         Δτ2 = (-nyf2) .* t3 .+ nxf2 .* t4
-         Δσ1 = nxf1 .* t1 .+ nyf1 .* t2   
-         Δσ2 = nxf2 .* t3 .+ nyf2 .* t4
-      
-    # if ((e1 == 1) && (lf1 == 3))
-    # @show Δτ1[1, 1], Δτ1[end, end], Δτ2[1, 1], Δτ2[end, end]
-    # end
-     # compute traction on fault as average of both sides, map to fault orientation:
+      # compute traction faces wrt to minus side face orientation:
       if EToO[lf2, e2]
         @views Δτ[δrng] .= (Δτ1 .+ Δτ2) ./ 2
         @views Δσ[δrng] .= (Δσ1 .+ Δσ2) ./ 2 
@@ -169,9 +166,9 @@ function odefun(dψV, ψδ, p, t)
         @views Δσ[δrng] .= (Δσ1 .+ Δσ2[end:-1:1]) ./ 2 
       end
 
-  
       for n = 1:length(δrng)
         δn = δrng[n]
+    
         τ[δn] = Δτ[δn] + τ0[δn]
         σ[δn] = Δσ[δn] + σ0[δn]
 
@@ -237,12 +234,8 @@ function odefun(dψV, ψδ, p, t)
       urng1 = vstarts[e1]:(vstarts[e1+1]-1)
       urng2 = vstarts[e2]:(vstarts[e2+1]-1)
 
+      (t1, t2, t3, t4)  = computetraction(lop, e1, e2, lf1, lf2, u, w, urng1, urng2, EToF, EToO, FToδstarts, δ)
 
-      t1, t2 = computetraction(lop[e1], lf1, u[urng1], w[urng1])
-      t3, t4 = computetraction(lop[e2], lf2, u[urng2], w[urng2])
-    
-
-    
         Δτ1 = (-nyf1) .* t1 .+ nxf1 .* t2   
         Δτ2 = (-nyf2) .* t3 .+ nxf2 .* t4
         Δσ1 = nxf1 .* t1 .+ nyf1 .* t2   
@@ -267,9 +260,6 @@ function odefun(dψV, ψδ, p, t)
    
     end
     
-    
-      
-
     
   end
 

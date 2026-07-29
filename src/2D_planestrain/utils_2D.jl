@@ -439,13 +439,13 @@ function read_params_planestrain(f_name)
       end
   end
   close(f)
-    params = Vector{Any}(undef, 22)
+    params = Vector{Any}(undef, 23)
   params[1] = tmp_params[1]
   params[2] = tmp_params[2]
     for i = 3:length(tmp_params)-1
       params[i] = parse(Float64, tmp_params[i])
     end
-    params[22] = parse(Int64, tmp_params[22])
+    params[23] = parse(Int64, tmp_params[23])
   return params
 end
 
@@ -1355,6 +1355,7 @@ function write_to_file_BP6(pth, ψδ, t, i, zf,flt_loc, flt_loc_indices, station
   
   end
 
+  
 
 
   export setupfaultstations, savefaultstation

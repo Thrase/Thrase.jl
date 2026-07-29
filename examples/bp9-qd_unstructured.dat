@@ -5,15 +5,15 @@
 # path to store output
 pth =./output/bp9-unstructured/
 # name of mesh file:
-meshfile=BP9_2D_30d_8blocks_smalldomain.inp
+meshfile=BP9_2D_60d.inp
 # details of output data:
 # number of grid points in each dimension ON EACH ELEMENT/BLOCK
 # make sure to resolve h* and l_b; should be written as integer.
-Nx = 100
-Nz = 100
+Nx = 20
+Nz = 20
 #
 # how many years to simulate
-sim_years = 20000
+sim_years = 8000
 #
 # loading rate
 Vp = 1e-9
@@ -21,24 +21,25 @@ Vp = 1e-9
 # fault slip rate 
 # VL = 1e-9
 # dip angle - make sure this matches meshfile:
-psi = 30
+psi = 60
 # elastcity parameters
 ρ = 2.670
 ν = 0.25
 cs = 3.464
 # σn will function as the minimum effective stress parameter
-σn = 1
+σn = 100
 #
 # rate-and-state friction parameters
-RSamin = 0.01
-RSamax = 0.025
-RSb = 0.015
-RSDc = 0.14
+RSamin = 0.004
+RSamax = 0.04
+RSb = 0.03
+RSDc = 0.56
 RSf0 = 0.6
 RSV0 = 1e-6
 RSVinit = 1e-9
-RSH1 = 15
-RSH2 = 17
+RSHt = 2
+RSHs = 2
+RSw = 12
 RSWf = 40
 #
 # SBP interior spatial order of accuracy

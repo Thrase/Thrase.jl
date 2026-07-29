@@ -492,8 +492,59 @@ let
     #REbc_map = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN, BC_NEUMANN, BC_NEUMANN, BC_JUMP_INTERFACE, BC_JUMP_INTERFACE]
     # read in mesh from an .inp file and put in boundary condition type
     
-  (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/BP9_2D__30degree_v1.inp")
+ # (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/BP9_2D__30degree_v1.inp")
 
+ # 4 blocks, 90 degresss
+ verts = [-50 0 -50 0 -50 0 50 50 50;
+            -25 -25 0 0 -50 -50 -25 0 -50]
+EToV = [1 5 2 6;
+        2 6 7 9;
+        3 1 4 2;
+        4 2 8 7];
+EToV[:,1], EToV[:, 2] = EToV[:,2], EToV[:, 1]
+EToV[:,3], EToV[:, 4] = EToV[:,4], EToV[:, 3]
+
+EToF = [1 5 2 6;
+        2 6 8 12;
+        3 7 9 11;
+        4 3 10 9];
+
+ EToF[:,1], EToF[:, 2] = EToF[:,2], EToF[:, 1]
+  EToF[:,3], EToF[:, 4] = EToF[:,4], EToF[:, 3]
+
+# FToB = [1; 7; 0; 2; 1; 7; 2; 1; 0; 2; 2; 1]
+FToB = [1; 7; 0; 2; 1; 7; 2; 1; 0; 2; 2; 1]
+
+EToDomain = [1 1 2 2]
+# #   # 18 blocks 
+#     bb = 50
+#   xd = (bb/3) * cosd(60)
+#   yd = (bb/3) * sind(60)
+#   a = bb/3
+
+
+#   # skewed:
+#   verts = [-50 -15 -5 0 10 18 50 -50+xd -18 -7 6 12 30 50+xd -50+2*xd -10 -5 10 27 32 50+2*xd -25 -xd xd 25 -25+4*50/3 -25+5*50/3 75;
+#            0 0 0 0 0 0 0 -yd -16 -15 -12*sind(60) -8 -10 -yd -2*yd -30 -25 -20*sind(60) -22 -25 -2*yd -3*yd -3*yd -3*yd -3*yd -3*yd -3*yd -3*yd] 
+#  # not skewed:
+
+# #   verts = [-bb -bb+a -bb+2*a 0 a 2a bb -bb+xd -bb+a+xd -bb+2a+xd -bb+3a+xd -bb+4a+xd -bb+5a+xd bb+xd -bb+2xd -bb+a+2xd -bb+2a+2xd -bb+3a+2xd -bb+4a+2xd -bb+5a+2xd bb+2xd -bb+3xd -bb+a+3xd -bb+2a+3xd -bb+3a+3xd -bb+4a+3xd -bb+5a+3xd bb+3xd;
+# #             0 0 0 0 0 0 0 -yd -yd -yd -yd -yd -yd -yd -2*yd -2*yd -2*yd -2*yd -2*yd -2*yd -2*yd -3*yd -3*yd -3*yd -3*yd -3*yd -3*yd -3*yd] 
+  
+
+#   EToV = [8  9 10 11 12 13 15 16 17 18 19 20 22 23 24 25 26 27;
+#           9 10 11 12 13 14 16 17 18 19 20 21 23 24 25 26 27 28;
+#           1  2  3  4  5  6  8  9 10 11 12 13 15 16 17 18 19 20;
+#           2  3  4  5  6  7  9 10 11 12 13 14 16 17 18 19 20 21]
+
+#  EToF = [13 25 26 27 28 29 14 36 37 38 39 40 15 41 42 43 44 45;
+#          25 26 27 28 29 16 36 37 38 39 40 17 41 42 43 44 45 18;
+#          19 20 21 22 23 24 30 31 32 33 34 35  7  8  9 10 11 12;
+#           1  2  3  4  5  6 19 20 21 22 23 24 30 31 32 33 34 35]
+
+# FToB = [2; 2; 2; 2; 2; 2; 2; 2; 2; 2; 2; 2; 1; 1; 1; 1; 1; 1; 0; 0; 0; 0; 0; 0; 0; 0; 7; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 7; 0; 0; 0; 0; 7; 0; 0]
+
+# EToDomain = [1 1 1 2 2 2 1 1 1 2 2 2 1 1 1 2 2 2]
 
 
 #  verts = [-40 -28 -10   0   8  28  40 -40 -30 -14   0   8  25  40 -40 -32 -13   0  8  22  40 -40 -30 -12 0 5 25 40;
@@ -597,7 +648,7 @@ let
 
    #uncomment for two blocks with same orientation
  #verts = [-100 1 100 -111 1.4 100;
- #           1 -1 2 100 102 97];
+ #          1 -1 2 100 102 97];
 
  #verts = [-11 0 10 -10 0 10;
    #    0 0 0 10 10 10];
@@ -605,7 +656,7 @@ let
 # verts = [-10 0 10 -10 0 10;
 #       0 0 0 10 10 10];
 
-#    FToB = [1; 7; 1; 2; 2; 2; 2];
+ #   FToB = [1; 7; 1; 2; 2; 2; 2];
    #FToB = [1; 1; 1; 1; 1; 1; 1];
 
 
@@ -783,13 +834,13 @@ let
         u2 = u[N+1:2*N]
 
         
-        if lvl == 1 # plot approximation, exact solution, or error on coarsest grid
+        if lvl == 3 # plot approximation, exact solution, or error on coarsest grid
             
             #better_plot_solution(u1, nelems, vstarts, Nr, Ns, lop) 
             
             #better_plot_solution(u1_exact, nelems, vstarts, Nr, Ns, lop)
-          better_plot_solution(u1_exact-u1, nelems, vstarts, Nr, Ns, lop)
-          #  poo
+          better_plot_solution(u2_exact-u2, nelems, vstarts, Nr, Ns, lop)
+      
           
         end
 
@@ -830,10 +881,7 @@ let
         T1e = exact_traction(x1, y1, nxf1, nyf1, e1, EToDomain)
         t1e = T1e[:,1] 
         t2e = T1e[:,2]
-        @show t1e 
-        @show t1
-        @show t2e
-        @show t2
+      
         # T1e = exact_traction(x1, y1, nxf1, nyf1, e1, EToDomain)
         # t1e = T1e[:,1]
         # t2e = T1e[:,2]
@@ -845,13 +893,13 @@ let
         # @show t1, t2, t3, t4
         # @show t1e, t2e, t3e, t4e  
         
-        # A = -H̃ * M
-        # @show extrema(real(eigvals(Matrix(A))))
-        # @show extrema(imag(eigvals(Matrix(A))))
-        # @show extrema(A - A')
-        # spy(A)
-        # spy(A-A')
-        # poo
+        #A = -H̃ * M
+        #@show extrema(real(eigvals(Matrix(A))))
+        #@show extrema(imag(eigvals(Matrix(A))))
+        #@show extrema(A - A')
+        #spy(A)
+        #spy(A-A')
+ 
         diff = u .- uexact
      
         ϵ[lvl] = sqrt(diff' * H̃ * diff) ./ sqrt(uexact' * H̃ * uexact)   # relative error
