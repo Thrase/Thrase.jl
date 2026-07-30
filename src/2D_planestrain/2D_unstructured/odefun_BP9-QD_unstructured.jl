@@ -55,16 +55,7 @@ function odefun(dψV, ψδ, p, t)
         end
             
     end
-  # function creep(x,y,t, e, EToDomain)
-  #       if EToDomain[e] == 1 # bottom side fault
-  #           return [(Vp/2) .* t .+ 0 .* x .+ 0 .* y, 0 .* x .+ 0 .* y]
-  #       elseif EToDomain[e] == 2
-  #           return [-(Vp/2) .* t  .+ 0 .* x .+ 0 .* y, 0 .* x .+ 0 .* y]
-  #       else
-  #           error("shouldn't get here")
-  #       end
-            
-  #   end
+
 
   bc_Dirichlet = (lf, x, y, e, δ, t, EToDomain) -> creep(x,y,t,e,EToDomain)
   bc_Neumann   = (lf, x, y, nx, ny, e, δ, t, EToDomain) -> [zeros(size(x)), zeros(size(x))]

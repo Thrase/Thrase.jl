@@ -621,7 +621,6 @@ function read_inp_2d(T, S, filename::String; bc_map=1:10000)
   inp_to_zorder = [3,  2, 4, 1]
   while linenum > 0
     foo = split(lines[linenum], r"[^0-9]", keepempty=false)
-    @show foo
     (bc, face) = try
       (parse(T, foo[1]),
        parse(T, foo[2]))

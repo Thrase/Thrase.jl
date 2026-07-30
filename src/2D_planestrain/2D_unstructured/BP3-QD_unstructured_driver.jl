@@ -32,7 +32,7 @@ function main()
     ### input parameters
     (pth, meshfile, Nx, Ny, sim_years, Vp, psi, ρ, ν, cs, σn, 
     RSamin, RSamax, RSb, RSDc,
-    RSf0, RSV0, RSVinit, RSH1,RSH2, RSWf, SBPp) = read_params_planestrain(localARGS[1])
+    RSf0, RSV0, RSVinit, RSH1,RSH2, RSw, RSWf, SBPp) = read_params_planestrain(localARGS[1])
 
     
     try
@@ -257,17 +257,6 @@ function main()
             δNp)
     σ0 = σn .* ones(δNp)
 
-    # for f = 1:nfaces
-    #     if FToB[f] == RS_FAULT
-    #         (e1, e2) = FToE[:, f]
-    #         (lf1, lf2) = FToLF[:, f]
-    #         nx = lop[e1].nx
-    #         δrng = FToδstarts[f]:(FToδstarts[f+1]-1)
-    #         for n = 1:length(δrng)
-    #             τ0[δrng[n]] = sign(nx[lf1][n])*abs(τ0[δrng[n]]) # TODO wtf
-    #         end
-    #     end
-    # end
    
     # Set initial state variable according to benchmark           
     θ = (RSDc ./ RSV0) .* exp.((RSa ./ RSb) .* log.((2 .* RSV0 ./ RSVinit) .*
@@ -306,9 +295,8 @@ function main()
     stations = setupfaultstations(stations_locations, lop, FToB, FToE, FToLF,
                                 (RS_FAULT, VP_FAULT))
 
-     fault = setupfaultcoord(lop, FToB, FToE, FToLF,
+    fault = setupfaultcoord(lop, FToB, FToE, FToLF,
                                 (RS_FAULT, VP_FAULT), psi) 
-
 
 
 
@@ -384,11 +372,9 @@ end
 S = main();
 
 # example of how to plot slip contours (uncomment if desired):
-# plot_slip(pth*"slip.dat")
+# pth = "output/bp3-unstructured/2026-07-29T10:51:01.351/Slip_BP3_N_20_.dat"
+# plot_slip(pth)
 
 # examples of how ot plot times series of shear stress:
-#pth = "BP3_N_40_0.0_-7.5.dat"
-#plot_fault_time_series("shear_stress", pth)
-# plot_fault_time_series("slip_rate", pth*"fltst_strk000.txt")
-# plot_fault_time_series("shear_stress", pth*"fltst_strk+10.txt")
-# plot_fault_time_series("state", pth*"fltst_strk+25.txt")
+# pth = "output/bp3-unstructured/2026-07-29T10:51:01.351/BP3_N_20_0.0_0.0.dat"
+# plot_fault_time_series("slip_rate", pth)

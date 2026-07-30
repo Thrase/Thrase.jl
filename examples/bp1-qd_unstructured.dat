@@ -5,7 +5,7 @@
 # path to store output
 pth =./output/bp1-qd-unstructured/
 # name of mesh file:
-meshfile=BP1_v1.inp
+meshfile=BP1_v2.inp
 # details of output data:
 # number of grid points in each dimension ON EACH ELEMENT/BLOCK
 # make sure to resolve h* and l_b; should be written as integer.

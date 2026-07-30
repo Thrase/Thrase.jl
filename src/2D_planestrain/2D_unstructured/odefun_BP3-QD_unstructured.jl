@@ -104,8 +104,7 @@ function odefun(dψV, ψδ, p, t)
         loc_bdry_vec_v2!((@view b[vstarts[e]:vstarts[e+1]-1, :]), lop[e], FToB[EToF[:,e]], EToF, FToE, FToLF, bc_Dirichlet, bc_Neumann, in_jump, (e, δ, t, EToDomain))
   end
 
-  #@show b
-  #sleep(2)
+
   # solve for displacements everywhere in domain
   U = A \ b[:]
   VNp = Integer(length(U)/2)
@@ -147,19 +146,17 @@ function odefun(dψV, ψδ, p, t)
       sJ2 = lop[e2].sJ[lf2]
 
     
+    # compute tractions wrt to volume orientation; by default these include corrections
+    (t1, t2, t3, t4)  = computetraction(lop, e1, e2, lf1, lf2, u, w, urng1, urng2, EToF, EToO, FToδstarts, δ)
+      
+        # resolve tractions into shear and normal, these are still wrt volume orientation, not face:
 
-      t1, t2 = computetraction(lop[e1], lf1, u[urng1], w[urng1])
-      t3, t4 = computetraction(lop[e2], lf2, u[urng2], w[urng2]) 
-
-  
          Δτ1 = (-nyf1) .* t1 .+ nxf1 .* t2   
          Δτ2 = (-nyf2) .* t3 .+ nxf2 .* t4
          Δσ1 = nxf1 .* t1 .+ nyf1 .* t2   
          Δσ2 = nxf2 .* t3 .+ nyf2 .* t4
       
-    # if ((e1 == 1) && (lf1 == 3))
-    # @show Δτ1[1, 1], Δτ1[end, end], Δτ2[1, 1], Δτ2[end, end]
-    # end
+ 
      # compute traction on fault as average of both sides, map to fault orientation:
       if EToO[lf2, e2]
         @views Δτ[δrng] .= (Δτ1 .+ Δτ2) ./ 2
@@ -238,9 +235,8 @@ function odefun(dψV, ψδ, p, t)
       urng2 = vstarts[e2]:(vstarts[e2+1]-1)
 
 
-      t1, t2 = computetraction(lop[e1], lf1, u[urng1], w[urng1])
-      t3, t4 = computetraction(lop[e2], lf2, u[urng2], w[urng2])
-    
+      (t1, t2, t3, t4)  = computetraction(lop, e1, e2, lf1, lf2, u, w, urng1, urng2, EToF, EToO, FToδstarts, δ)
+
 
     
         Δτ1 = (-nyf1) .* t1 .+ nxf1 .* t2   

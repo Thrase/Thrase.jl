@@ -4,13 +4,13 @@
 #
 # path to store output
 pth =./output/bp3-unstructured/
-# name of mesh file:
-meshfile=BP9_2D_60d.inp
+# name of mesh file (make sure this matches psi below):
+meshfile=BP9_2D_30d.inp
 # details of output data:
 # number of grid points in each dimension ON EACH ELEMENT/BLOCK
 # make sure to resolve h* and l_b; should be written as integer.
-Nx = 50
-Nz = 50
+Nx = 20
+Nz = 20
 #
 # how many years to simulate
 sim_years = 2000
@@ -21,7 +21,7 @@ Vp = 1e-9
 # fault slip rate 
 # VL = 1e-9
 # dip angle 
-psi = 60
+psi = 30
 # elastcity parameters
 ρ = 2.670
 ν = 0.25
@@ -38,6 +38,8 @@ RSV0 = 1e-6
 RSVinit = 1e-9
 RSH1 = 15
 RSH2 = 18
+# (RSw not needed)
+RSw = 0 
 RSWf = 40
 #
 # SBP interior spatial order of accuracy
