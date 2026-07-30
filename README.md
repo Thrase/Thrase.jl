@@ -86,7 +86,7 @@ include("src/2D_antiplane/2D_structured/BP6_driver_dispBC.jl");
 
 ```
 
-To run the code for <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP3.pdf">BP3 - 30 degree dipping (thrust) fault:
+To run the code for <a href="https://strike.scec.org/cvws/seas/download/SEAS_BP3.pdf"</a>BP3 - 30 degree dipping (thrust) fault:
 
 ```
 localARGS = ["examples/bp3-qd-unstructured.dat"]
