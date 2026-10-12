@@ -1,11 +1,13 @@
 using SparseArrays
 using LinearAlgebra
+
 #using UnicodePlots
 
 ⊗(A,B) = kron(A, B)
 
 const BC_DIRICHLET        = 1
 const BC_NEUMANN          = 2
+const EARTH_SURFACE       = 3
 const BC_LOCKED_INTERFACE = 0
 const BC_JUMP_INTERFACE   = 7
 
@@ -515,7 +517,6 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
   
 ad = 1
 bd = 1
-#WTF SOMETHING VERY WRONG WIHT mT21_1 or maybe it's' mT21_2 - check wherever it's being used - I cant' seem to have both present 
   TT_1 = [[ad .* mT11_1'] [bd .* mT21_1']; [ad .* mT12_1'] [ad .* mT22_1']]
   TT_2 = [[ad .* mT11_2'] [bd .* mT21_2']; [ad .* mT12_2'] [ad .* mT22_2']]
   TT_3 = [[ad .* mT11_3'] [ad .* mT21_3']; [ad .* mT12_3'] [ad .* mT22_3']]
@@ -728,7 +729,7 @@ bd = 1
   bctype=(BC_LOCKED_INTERFACE, BC_LOCKED_INTERFACE, BC_LOCKED_INTERFACE, BC_LOCKED_INTERFACE)
   
   for lf = 1:4
-    if LFToB[lf] == BC_NEUMANN
+    if (LFToB[lf] == BC_NEUMANN || LFToB[lf] == EARTH_SURFACE)
       A11 += nSAT[lf][1, 1]
       A12 += nSAT[lf][1, 2] 
       A21 += nSAT[lf][2, 1] 
@@ -757,7 +758,7 @@ bd = 1
   sJ = metrics.sJ,
   nx = metrics.nx,
   ny = metrics.ny,
-  sJZ, neighborZ, T_high)
+  sJZ, neighborZ, T_high, dSAT = dSAT)
 
 
 end
@@ -795,7 +796,7 @@ function loc_bdry_vec!(ge, lop, LFToB, EToF, FToE, FToLF, bc_Dirichlet, bc_Neuma
       vf_2 = dB[lf][1, 2]*gD[:, 1] + dB[lf][2, 2]*gD[:, 2]
       
 
-    elseif LFToB[lf] == BC_NEUMANN
+    elseif (LFToB[lf] == BC_NEUMANN || LFToB[lf] == EARTH_SURFACE)
       gN = bc_Neumann(lf, xf[lf], yf[lf], nx[lf], ny[lf], bcargs...) # this should return a two column vector
       vf_1 = nB[lf] * (sJ[lf] .* gN[:, 1])
       vf_2 = nB[lf] * (sJ[lf] .* gN[:, 2])
@@ -877,7 +878,7 @@ function loc_bdry_vec_v2!(ge, lop, LFToB, EToF, FToE, FToLF, bc_Dirichlet, bc_Ne
       ge[:, 1] += vf_1 
       ge[:, 2] += vf_2 
  
-    elseif LFToB[lf] == BC_NEUMANN
+    elseif (LFToB[lf] == BC_NEUMANN || LFToB[lf] == EARTH_SURFACE)
  
       gN = bc_Neumann(lf, xf[lf], yf[lf], nx[lf], ny[lf], bcargs...) #this should return B[3]*g3
    
@@ -934,28 +935,36 @@ end
 function computetraction(lop, e1, e2, lf1, lf2, u, w, urng1, urng2, EToF, EToO, FToδstarts, δ; correction = true)
 
 
-  T11 = lop[e1].T_high[lf1][1, 1]
-  T12 = lop[e1].T_high[lf1][1, 2]
-  T21 = lop[e1].T_high[lf1][2, 1]
-  T22 = lop[e1].T_high[lf1][2, 2]
+  T11_1 = lop[e1].T_high[lf1][1, 1]
+  T12_1 = lop[e1].T_high[lf1][1, 2]
+  T21_1 = lop[e1].T_high[lf1][2, 1]
+  T22_1 = lop[e1].T_high[lf1][2, 2]
+  #   T11_1 = lop[e1].T[lf1][1, 1]
+  # T12_1 = lop[e1].T[lf1][1, 2]
+  # T21_1 = lop[e1].T[lf1][2, 1]
+  # T22_1 = lop[e1].T[lf1][2, 2]
 
   sJ1 = lop[e1].sJ[lf1]
-  eRST = lop[e1].eRST[lf1]
+  eRST_1 = lop[e1].eRST[lf1]
      
-  t1 = (eRST * (T11 * u[urng1] + T12 * w[urng1])) ./ sJ1
-  t2 = (eRST * (T21 * u[urng1] + T22 * w[urng1])) ./ sJ1
+  t1 = (eRST_1 * (T11_1 * u[urng1] + T12_1 * w[urng1])) ./ sJ1
+  t2 = (eRST_1 * (T21_1 * u[urng1] + T22_1 * w[urng1])) ./ sJ1
   
-
-  T11 = lop[e2].T_high[lf2][1, 1]
-  T12 = lop[e2].T_high[lf2][1, 2]
-  T21 = lop[e2].T_high[lf2][2, 1]
-  T22 = lop[e2].T_high[lf2][2, 2]
+ 
+  T11_2 = lop[e2].T_high[lf2][1, 1]
+  T12_2 = lop[e2].T_high[lf2][1, 2]
+  T21_2 = lop[e2].T_high[lf2][2, 1]
+  T22_2 = lop[e2].T_high[lf2][2, 2]
+  #   T11_2 = lop[e2].T[lf2][1, 1]
+  # T12_2 = lop[e2].T[lf2][1, 2]
+  # T21_2 = lop[e2].T[lf2][2, 1]
+  # T22_2 = lop[e2].T[lf2][2, 2]
 
   sJ2 = lop[e2].sJ[lf2]
-  eRST = lop[e2].eRST[lf2]
-     
-  t3 = (eRST * (T11 * u[urng2] + T12 * w[urng2])) ./ sJ2
-  t4 = (eRST * (T21 * u[urng2] + T22 * w[urng2])) ./ sJ2
+  eRST_2 = lop[e2].eRST[lf2]
+  
+  t3 = (eRST_2 * (T11_2 * u[urng2] + T12_2 * w[urng2])) ./ sJ2
+  t4 = (eRST_2 * (T21_2 * u[urng2] + T22_2 * w[urng2])) ./ sJ2
 
   # compute actual slip, by default this is with respect to minus side face orientation 
   f = EToF[lf1, e1]  # Get global face number
@@ -1029,6 +1038,31 @@ function computetraction(lop, e1, e2, lf1, lf2, u, w, urng1, urng2, EToF, EToO, 
 
   return (t1, t2, t3, t4)
 end
+
+
+
+function compute_K(lop, e1, lf1)
+
+
+  T11_1 = lop[e1].T[lf1][1, 1]
+  T12_1 = lop[e1].T[lf1][1, 2]
+  T21_1 = lop[e1].T[lf1][2, 1]
+  T22_1 = lop[e1].T[lf1][2, 2]
+
+  sJ1 = lop[e1].sJ[lf1]
+  sJ1_inv = 1 ./ sJ1
+  eRST_1 = lop[e1].eRST[lf1]
+     
+
+   K1 = (sJ1_inv .* eRST_1) * T11_1
+   K2 = (sJ1_inv .* eRST_1) * T12_1 
+   K3 = (sJ1_inv .* eRST_1) * T21_1 
+   K4 = (sJ1_inv .* eRST_1) * T22_1 
+
+
+  return (K1, K2, K3, K4)
+end
+
 
 function rateandstate(V, psi, σn, ϕ, η, a, V0)
   Y = (1 ./ (2 .* V0)) .* exp.(psi ./ a)
@@ -1169,7 +1203,7 @@ function calculate_neighbors(lop, e, FToB, EToF, FToE, FToLF, EToO)
             eo = em 
             nf = fm
           end    
-                  
+       
           neighborZ[lf] .= deepcopy(lop[eo].IsJZ[nf]) # need to store the Z from the other element's local face
 
          
@@ -1399,11 +1433,36 @@ end
 #}}}
 
 
+
+function compute_surface_displacements!(u1, u3, u, w, nfaces, FToB, FToE, FToLF, vstarts, lop, FToFREEstarts)
+    for f = 1:nfaces  # loop over faces
+        if FToB[f] ∈ EARTH_SURFACE # determine if a free surface
+            (e, _) = FToE[:, f] # get element number
+            (lf, _) = FToLF[:, f] # get local face number
+    
+                u1e = u[vstarts[e]:vstarts[e+1]-1, :] # restrict displacement to element
+                u3e = w[vstarts[e]:vstarts[e+1]-1, :] # restrict displacement to element
+
+                u1_surf = lop[e].eRST[lf]*u1e   # restrict element displacement to surface
+                u3_surf = lop[e].eRST[lf]*u3e   # restrict element displacement to surface
+
+                Frng = FToFREEstarts[f]:(FToFREEstarts[f+1]-1)
+              
+                for n = 1:length(Frng)
+                    u1[Frng[n]] = u1_surf[n]
+                    u3[Frng[n]] = u3_surf[n]
+                end
+          
+        end
+    end
+  end
+
+
 # flatten tuples to arrays
 flatten_tuples(x) = reshape(collect(Iterators.flatten(x)), length(x[1]),
                             length(x))
 
 export create_metrics, get_operators, computetraction,   plot_blocks, plot_connectivity
-export bdry_vec!, loc_bdry_vec_v2!
+export bdry_vec!, loc_bdry_vec_v2!, compute_surface_displacements!
 export rateandstate, newtbndv, bcstarts, connectivityarrays, flatten_tuples
 export LocalGlobalOperators, SBPLocalOperator1, global_operator
