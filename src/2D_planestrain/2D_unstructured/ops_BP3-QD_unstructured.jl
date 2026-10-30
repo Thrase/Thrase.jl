@@ -934,31 +934,21 @@ end
 
 function computetraction(lop, e1, e2, lf1, lf2, u, w, urng1, urng2, EToF, EToO, FToδstarts, δ; correction = true)
 
-
-  T11_1 = lop[e1].T_high[lf1][1, 1]
-  T12_1 = lop[e1].T_high[lf1][1, 2]
-  T21_1 = lop[e1].T_high[lf1][2, 1]
-  T22_1 = lop[e1].T_high[lf1][2, 2]
-  #   T11_1 = lop[e1].T[lf1][1, 1]
-  # T12_1 = lop[e1].T[lf1][1, 2]
-  # T21_1 = lop[e1].T[lf1][2, 1]
-  # T22_1 = lop[e1].T[lf1][2, 2]
+  T11_1 = lop[e1].T[lf1][1, 1]
+  T12_1 = lop[e1].T[lf1][1, 2]
+  T21_1 = lop[e1].T[lf1][2, 1]
+  T22_1 = lop[e1].T[lf1][2, 2]
 
   sJ1 = lop[e1].sJ[lf1]
   eRST_1 = lop[e1].eRST[lf1]
      
   t1 = (eRST_1 * (T11_1 * u[urng1] + T12_1 * w[urng1])) ./ sJ1
   t2 = (eRST_1 * (T21_1 * u[urng1] + T22_1 * w[urng1])) ./ sJ1
-  
- 
-  T11_2 = lop[e2].T_high[lf2][1, 1]
-  T12_2 = lop[e2].T_high[lf2][1, 2]
-  T21_2 = lop[e2].T_high[lf2][2, 1]
-  T22_2 = lop[e2].T_high[lf2][2, 2]
-  #   T11_2 = lop[e2].T[lf2][1, 1]
-  # T12_2 = lop[e2].T[lf2][1, 2]
-  # T21_2 = lop[e2].T[lf2][2, 1]
-  # T22_2 = lop[e2].T[lf2][2, 2]
+
+  T11_2 = lop[e2].T[lf2][1, 1]
+  T12_2 = lop[e2].T[lf2][1, 2]
+  T21_2 = lop[e2].T[lf2][2, 1]
+  T22_2 = lop[e2].T[lf2][2, 2]
 
   sJ2 = lop[e2].sJ[lf2]
   eRST_2 = lop[e2].eRST[lf2]
