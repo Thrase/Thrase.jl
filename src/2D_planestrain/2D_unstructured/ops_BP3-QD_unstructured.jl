@@ -304,17 +304,17 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
   Np = Nrp * Nsp
   # }}}
 
+
   # {{{ Create 1D operators in logical space #TODO: higher order accuracy for computing tractions. 
   (Dr, HrI, Hr, r) = diagonal_sbp_D1(p, Nr; xc = (-1,1))
   (Ds, HsI, Hs, s) = diagonal_sbp_D1(p, Ns; xc = (-1,1))
-  (_, S0r, SNr, _, _, _) = diagonal_sbp_D2(p, Nr; xc = (-1,1))
-  (_, S0s, SNs, _, _, _) = diagonal_sbp_D2(p, Ns; xc = (-1,1))
+  (D2r, S0r, SNr, _, _, _) = diagonal_sbp_D2(p, Nr; xc = (-1,1))
+  (D2s, S0s, SNs, _, _, _) = diagonal_sbp_D2(p, Ns; xc = (-1,1))
 
-  # UPDATE BOUNDARY STENCILS
-  # Dr[1,:] = S0r[1,:]
-  # Dr[end,:] = SNr[end,:]
-  # Ds[1,:] = S0s[1,:]
-  # Ds[end,:] = SNs[end,:]
+  # define pore pressure diffusion operator: 
+ #(D2r_Var, S0r_Var, SNr_Var, HIr_Var, Hr_Var, _, _) = variable_diagonal_sbp_D2(p, N, ry*c0*ry; xc = (-1, 1))
+ #(D2s_Var, S0s_Var, SNs_Var, HIs_Var, Hs_Var, _, _) = variable_diagonal_sbp_D2(p, N, sy*c0*sy; xc = (-1, 1))
+ #Pop = Jf_inv * (D2r_Var + ry*Dr*sy*Ds + sy*Ds*ry*Dr + D2s_Var) - c0*H
 
   # compute traction opererators - higher order at boundaries
   Dr_high = copy(Dr)
@@ -758,9 +758,7 @@ bd = 1
   sJ = metrics.sJ,
   nx = metrics.nx,
   ny = metrics.ny,
-  sJZ, neighborZ, T_high, dSAT = dSAT)
-
-
+  sJZ, neighborZ, T_high)
 end
 
 #{{{ volsourcearray()
@@ -1193,30 +1191,32 @@ function calculate_neighbors(lop, e, FToB, EToF, FToE, FToLF, EToO)
             eo = em 
             nf = fm
           end    
-       
-          neighborZ[lf] .= deepcopy(lop[eo].IsJZ[nf]) # need to store the Z from the other element's local face
 
-         
-          if EToO[fp, ep] # if orientation matches, nothing to do. 
-            # nothing to do here
-          else
-            nz11 = neighborZ[lf][1, 1]
-            neighborZ[lf][1, 1] .= nz11[end:-1:1, end:-1:1]
-            nz12 = neighborZ[lf][1, 2]
-            neighborZ[lf][1, 2] .= nz12[end:-1:1, end:-1:1]
-            nz21 = neighborZ[lf][2, 1]
-            neighborZ[lf][2, 1] .= nz21[end:-1:1, end:-1:1]
-            nz22 = neighborZ[lf][2, 2]
-            neighborZ[lf][2, 2] .= nz22[end:-1:1, end:-1:1]                
+        Ir = sparse(I, size(lop[e].eRS[3], 2), size(lop[e].eRS[3], 2)) # identity, Nrp
+
+        Is = sparse(I, size(lop[e].eRS[1], 2), size(lop[e].eRS[1], 2)) # identity, Nsp
+
+        for i in 1:2, j in 1:2
+
+          Zf = lop[eo].eRST[nf] * lop[eo].IsJZ[nf][i, j] * lop[eo].eRS[nf]
+          # neighbour's penalty on its face nodes
+
+          if !EToO[fp, ep] # orientation reversed: flip the face ordering
+
+            Zf = Zf[end:-1:1, end:-1:1]
+
           end
 
-      else  # not an interface
+          neighborZ[lf][i, j] = lf <= 2 ? kron(Zf, Ir) : kron(Is, Zf) 
+
+        end
+
+
+      else 
+        # not an interface
         # nothing to do here
       end
-        
-    
-  end
-
+    end
   return neighborZ
 end
 

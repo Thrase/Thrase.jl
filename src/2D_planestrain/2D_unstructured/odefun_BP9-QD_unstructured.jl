@@ -6,6 +6,7 @@ function odefun(dψV, ψδ, p, t)
   
   RS_FAULT = 7
   VP_FAULT = 8
+  EARTH_SURFACE = 3
 
   reject_step = p.reject_step
   Vp = p.Vp
@@ -18,6 +19,7 @@ function odefun(dψV, ψδ, p, t)
   EToO = p.EToO
   FToB = p.FToB
   FToδstarts = p.FToδstarts
+  FToFREEstarts = p.FToFREEstarts
   EToDomain = p.EToDomain
   b = p.b
   u = p.u
@@ -31,6 +33,7 @@ function odefun(dψV, ψδ, p, t)
   RSa = p.RSa
   RSb = p.RSb
   σmin = p.σmin
+  zh = p.zh
   η = p.η
   RSV0 = p.RSV0
   τ0 = p.τ0
@@ -39,6 +42,9 @@ function odefun(dψV, ψδ, p, t)
   RSf0 = p.RSf0
   #fault_nodes = p.fault_nodes
   psi = p.psi
+  u1 = p.u1
+  u3 = p.u3
+  
 
 
   nelems = length(lop)
@@ -47,6 +53,7 @@ function odefun(dψV, ψδ, p, t)
     # Set boundary data functions:
     function creep(x,y,t, e, EToDomain)
         if EToDomain[e] == 1 # left/top hand side of fault
+       
             return [(Vp/2) .* t * cosd(psi) .+ 0 .* x .+ 0 .* y, -(Vp/2) .* t * sind(psi).+ 0 .* x .+ 0 .* y]
         elseif EToDomain[e] == 2
             return [-(Vp/2) .* t * cosd(psi).+ 0 .* x .+ 0 .* y, (Vp/2) .* t * sind(psi).+ 0 .* x .+ 0 .* y]
@@ -104,6 +111,11 @@ function odefun(dψV, ψδ, p, t)
   u[:] = U[1:VNp]
   w[:] = U[VNp+1:2*VNp]
 
+  
+  # fill in surface displacements:
+  compute_surface_displacements!(u1, u3, u, w, nfaces, FToB, FToE, FToLF, vstarts, lop, FToFREEstarts)
+  
+
   # set up rates of change for state and slip
   dψ =  @view dψV[       (1:δNp) ]
   V1  = @view dψV[ δNp .+ (1:δNp) ]   # fault parallel rate
@@ -144,24 +156,28 @@ function odefun(dψV, ψδ, p, t)
       # resolve tractions into shear and normal, these are still wrt volume orientation, not face:
       Δτ1 = (-nyf1) .* t1 .+ nxf1 .* t2   
       Δτ2 = (-nyf2) .* t3 .+ nxf2 .* t4
-      Δσ1 = nxf1 .* t1 .+ nyf1 .* t2   
-      Δσ2 = nxf2 .* t3 .+ nyf2 .* t4
+      Δσ1 = -nxf1 .* t1 .- nyf1 .* t2   
+      Δσ2 = -nxf2 .* t3 .- nyf2 .* t4
+      
 
-  
       # compute traction faces wrt to minus side face orientation:
       if EToO[lf2, e2]
         @views Δτ[δrng] .= (Δτ1 .+ Δτ2) ./ 2
         @views Δσ[δrng] .= (Δσ1 .+ Δσ2) ./ 2 
+        #@show (Δσ1[1], Δσ2[1])
       else
         @views Δτ[δrng] .= (Δτ1 .+ Δτ2[end:-1:1]) ./ 2 
         @views Δσ[δrng] .= (Δσ1 .+ Δσ2[end:-1:1]) ./ 2 
+        #@show (Δσ1[1], Δσ2[end])
       end
 
+      #@show extrema(Δσ)
       for n = 1:length(δrng)
         δn = δrng[n]
     
         τ[δn] = Δτ[δn] + τ0[δn]
         σ[δn] = Δσ[δn] + σ0[δn]
+        #σ[δn] = max(σmin, Δσ[δn] + σ0[δn])
 
         if isnan(τ[δn])
           @show "uh oh"
@@ -229,8 +245,8 @@ function odefun(dψV, ψδ, p, t)
 
         Δτ1 = (-nyf1) .* t1 .+ nxf1 .* t2   
         Δτ2 = (-nyf2) .* t3 .+ nxf2 .* t4
-        Δσ1 = nxf1 .* t1 .+ nyf1 .* t2   
-        Δσ2 = nxf2 .* t3 .+ nyf2 .* t4
+        Δσ1 = -nxf1 .* t1 .- nyf1 .* t2   
+        Δσ2 = -nxf2 .* t3 .- nyf2 .* t4
       
 
        if EToO[lf2, e2]
@@ -245,6 +261,8 @@ function odefun(dψV, ψδ, p, t)
         
         τ[δn] = Δτ[δn] + τ0[δn]
         σ[δn] = Δσ[δn] + σ0[δn]
+        #σ[δn] = max(σmin, Δσ[δn] + σ0[δn])
+
         V1[δn] = Vp
 
       end

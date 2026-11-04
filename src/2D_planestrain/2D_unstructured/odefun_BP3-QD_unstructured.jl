@@ -200,7 +200,7 @@ function odefun(dψV, ψδ, p, t)
         end
     
   
-        V1[δn] = Vnew #TODO: fix to not do friction at depth
+        V1[δn] = 0Vnew #TODO: fix to not do friction at depth
         dψ[δn] = (RSb * RSV0 / RSDc) * (exp((RSf0-ψ[δn]) / RSb) - abs(V1[δn])
                                         / RSV0)
          if !isfinite(dψ[δn])

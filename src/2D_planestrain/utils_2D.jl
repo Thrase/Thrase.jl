@@ -2,7 +2,6 @@ using PyPlot
 using SparseArrays
 using LinearAlgebra
 using DelimitedFiles
-using DifferentialEquations
 using Interpolations
 #using UnicodePlots
 
@@ -132,7 +131,6 @@ function plot_slip(filename; idx_start = 1, headerlines=1, vert_limits = (-40, 0
 
   ind = find_ind(maxV);        #finds indices for inter/co-seismic phases
   interval = [5*31556926 1]   #plot every 5 years and every 1 second
-  ss_interval = 31556926/365 # plot slow slip every day
   ct = 0   #this counts the number of events
 
 
@@ -151,9 +149,9 @@ function plot_slip(filename; idx_start = 1, headerlines=1, vert_limits = (-40, 0
     end
 
     if i == 1
-      plt.plot(W1, flt_loc, color = "blue",  ls = "none", marker = ".", markersize = "0.5"); #interseismic phase
+      plt.plot(W1, flt_loc, color = "blue") #,  ls = "none", marker = ".", markersize = "0.5"); #interseismic phase
     else
-      plt.plot(W1, flt_loc, color = "blue", ls = "none", marker = ".", markersize = "0.5"); #interseismic phase
+      plt.plot(W1, flt_loc, color = "blue")#, ls = "none", marker = ".", markersize = "0.5"); #interseismic phase
     end
 
  
@@ -166,7 +164,7 @@ function plot_slip(filename; idx_start = 1, headerlines=1, vert_limits = (-40, 0
       W1 = [W1; w1]
     end
 
-    plt.plot(W1, flt_loc, color = "red", ls = "none", marker = ".", markersize = "0.5"); #coseismic phase
+    plt.plot(W1, flt_loc, color = "red")#, ls = "none", marker = ".", markersize = "0.5"); #coseismic phase
 
     ct = ct+1;
   end
