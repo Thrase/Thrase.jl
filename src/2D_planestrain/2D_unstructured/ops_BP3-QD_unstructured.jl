@@ -372,7 +372,7 @@ function locoperator(p, Nr, Ns, μ, λ, metrics=create_metrics(Nr,Ns,μ,λ),
   H1 = H2 = Hs 
   H3 = H4 = Hr
 
-  H = (Hs, Hs, Hr, Hr)
+  H = (H1, H2, H3, H4)
   Hinv = HsI ⊗ HrI
   
   # h1 and h2 in A&D are in logical space

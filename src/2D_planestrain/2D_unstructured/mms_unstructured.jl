@@ -493,29 +493,55 @@ let
     # read in mesh from an .inp file and put in boundary condition type
     
  # (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/BP9_2D__30degree_v1.inp")
+verts = [-40 0 40 -40 0 40;
+              -80 -80 -80 0 0 0];
+
+    FToB = [1; 7; 1; 2; 2; 2; 2];
+#    #FToB = [1; 1; 1; 1; 1; 1; 1];
+
+
+# #    #  same orientation
+#     # EToV = [1 2; 2 3; 4 5; 5 6];
+#     # EToF = [1 2; 
+#     #         2 3;
+#     #         6 7;
+#     #         4 5];
+
+#   #  different orientation that should lead to assertion error for minimum(J) > 0 (checked that it does)
+     EToV = [1 5; 
+             2 6; 
+             4 2;
+             5 3];
+     EToF = [1 2; 
+             2 3;
+             4 7;
+             6 5];
+    
+   EToDomain = [1 2]
+
 
  # 4 blocks, 90 degresss
- verts = [-50 0 -50 0 -50 0 50 50 50;
-            -25 -25 0 0 -50 -50 -25 0 -50]
-EToV = [1 5 2 6;
-        2 6 7 9;
-        3 1 4 2;
-        4 2 8 7];
-EToV[:,1], EToV[:, 2] = EToV[:,2], EToV[:, 1]
-EToV[:,3], EToV[:, 4] = EToV[:,4], EToV[:, 3]
+#  verts = [-50 0 -50 0 -50 0 50 50 50;
+#             -25 -25 0 0 -50 -50 -25 0 -50]
+# EToV = [1 5 2 6;
+#         2 6 7 9;
+#         3 1 4 2;
+#         4 2 8 7];
+# EToV[:,1], EToV[:, 2] = EToV[:,2], EToV[:, 1]
+# EToV[:,3], EToV[:, 4] = EToV[:,4], EToV[:, 3]
 
-EToF = [1 5 2 6;
-        2 6 8 12;
-        3 7 9 11;
-        4 3 10 9];
+# EToF = [1 5 2 6;
+#         2 6 8 12;
+#         3 7 9 11;
+#         4 3 10 9];
 
- EToF[:,1], EToF[:, 2] = EToF[:,2], EToF[:, 1]
-  EToF[:,3], EToF[:, 4] = EToF[:,4], EToF[:, 3]
+#  EToF[:,1], EToF[:, 2] = EToF[:,2], EToF[:, 1]
+#   EToF[:,3], EToF[:, 4] = EToF[:,4], EToF[:, 3]
 
+# # FToB = [1; 7; 0; 2; 1; 7; 2; 1; 0; 2; 2; 1]
 # FToB = [1; 7; 0; 2; 1; 7; 2; 1; 0; 2; 2; 1]
-FToB = [1; 7; 0; 2; 1; 7; 2; 1; 0; 2; 2; 1]
 
-EToDomain = [1 1 2 2]
+# EToDomain = [1 1 2 2]
 # #   # 18 blocks 
 #     bb = 50
 #   xd = (bb/3) * cosd(60)
