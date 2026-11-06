@@ -1,0 +1,1191 @@
+using PyPlot 
+using SparseArrays
+using LinearAlgebra
+using DelimitedFiles
+using Interpolations
+
+
+function interp1(xpt, ypt, x)
+
+  knots = (xpt,) 
+  itp = interpolate(knots, ypt, Gridded(Linear()))
+  itp(x)  # endpoints of x must be between xpt[1] and xpt[end]
+end
+  
+
+# find_ind_withslowslip() differentiates b/t phases by defining:
+# interseismic: when max slip rate < 10^-9 m/s,
+# slow slip: when 10^-8 m/s < max slip rate < 10^-3 m/s
+# coseismic: when 10^-3 m/s < max slip rate 
+# mv is maximum slip rate (log10 m/s) 
+function find_ind_withslowslip(mv)
+
+  ind = [1]
+  int1 = 1
+  int2 = 0
+  slow = 0
+  cos = 0
+  postseismic = 0
+
+  for i = 1:length(mv)
+
+    if mv[i] > -8.6 && int1 == 1 && int2 == 0 && slow == 0 && cos == 0 && postseismic == 0 # if going from first inter to slow
+      @show "slow"
+      append!(ind, i);
+      int1 = 0;
+      slow = 1;
+    end
+
+    if mv[i] < -8.5 && int1 == 0 && int2 == 0 && slow == 1 && cos == 0 && postseismic == 0# go from slow to second int
+      @show "inter2"
+      append!(ind, i);
+      int1 = 0
+      int2 = 1;
+      slow = 0;
+    end
+
+    if mv[i] > -3 && int1 == 0 && int2 == 1 && slow == 0 && cos == 0 && postseismic == 0# go from int to coseismic
+      @show "coseismic"
+      append!(ind, i)
+      int1 = 0
+      int2 = 0
+      cos = 1
+    end
+
+     if mv[i] < -3 && int1 == 0 && int2 == 0 && slow == 0 && cos == 1 && postseismic == 0# go from cos to postseismic
+      @show "post"
+      append!(ind, i-3)
+      int1 = 0
+      int2 = 0
+      cos = 0
+      postseismic = 1
+    end
+
+     if mv[i] < -8.8 && int1 == 0 && int2 == 0 && slow == 0 && cos == 0 && postseismic == 1# go from postseismic to interseismic 1
+      @show "inters 1"
+      append!(ind, i)
+      int1 = 1
+      int2 = 0
+      cos = 0
+      postseismic = 0
+    end
+  end
+
+
+  ind = append!(ind, length(mv));  #tack on for plotting any part of an incomplete coseismic/interseismic phase
+  
+
+  return ind
+end
+
+
+
+# find_ind() differentiates b/t phases by defining
+# interseismic when max slip rate < 10^-3 m/s
+# mv is maximum slip rate (log10 m/s) 
+function find_ind(mv)
+  ind = [1]
+  int = 1
+  cos = 0
+  for i = 2:length(mv)
+    if mv[i] > -3 && int == 1 && cos == 0
+      append!(ind, i);
+      int = 0;
+      cos = 1;
+    end
+  
+    if mv[i] < -3 && int == 0 && cos == 1
+      append!(ind, i-1)
+      int = 1
+      cos = 0
+    end
+  end
+
+
+  ind = append!(ind, length(mv));  #tack on for plotting any part of an incomplete coseismic/interseismic phase
+  
+
+  return ind
+end
+
+# plot_slip will plot slip contours from devol.txt - every 5 years in blue during interseismic, 
+# every 1 second in red during coseismic
+function plot_slip(filename; idx_start = 1, headerlines=1, vert_limits = (-40, 0))
+
+  grid = readdlm(filename, Float64, skipstart=headerlines)
+  sz = size(grid)
+  flt_loc = grid[1,3:end]
+  if flt_loc[end] > 0
+    flt_loc = -flt_loc
+  end
+
+  T = grid[2:sz[1],1]
+  maxV = grid[2:end, 2]
+  slip = grid[2:sz[1], 3:sz[2]]
+  N = size(slip)[2]
+
+  maxV = maxV[idx_start:end]
+  T = T[idx_start:end]
+  slip = slip[idx_start:end,:]
+  slip0 = slip[1,:]
+
+  ind = find_ind(maxV);        #finds indices for inter/co-seismic phases
+  interval = [5*31556926 1]   #plot every 5 years and every 1 second
+  ss_interval = 31556926/365 # plot slow slip every day
+  ct = 0   #this counts the number of events
+
+
+  #Assumes an initial interseismic period
+  #This for-loop only plots completed phases
+  for i = 1:2:length(ind)-2
+    
+    T1 = T[ind[i]]:interval[1]:T[ind[i+1]];
+
+    W1 = interp1(T,slip[:,1],T1)';
+    
+    for j = 2:N 
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+
+      W1 = [W1; w1]
+    end
+
+    if i == 1
+      plt.plot(W1, flt_loc, color = "blue")#, ls = "none", marker = ".", markersize = "0.5"); #interseismic phase
+    else
+      plt.plot(W1, flt_loc, color = "blue")#, ls = "none", marker = ".", markersize = "0.5"); #interseismic phase
+    end
+
+   
+    T1 = T[ind[i+1]]:interval[2]:T[ind[i+2]];
+
+
+    W1 = interp1(T,slip[:,1],T1)';
+    for j = 2:N 
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+      W1 = [W1; w1]
+    end
+
+    plt.plot(W1, flt_loc, color = "red")#, ls = "none", marker = ".", markersize = "0.5"); #coseismic phase
+
+    ct = ct+1;
+  end
+
+  
+  # plot remainder of an incomplete interseismic period:
+  i = length(ind)-1;
+  T1 = T[ind[i]]:interval[1]:T[ind[i+1]];
+  W1 = interp1(T,slip[:,1],T1)';
+      
+      for j = 2:N 
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+        W1 = [W1; w1]
+      end
+      if i == 1
+        plt.plot(W1, flt_loc, color = "blue", ls = "none", marker = ".", markersize = "0.5") #interseismic phase
+      else
+        plt.plot(W1, flt_loc, color = "blue", ls = "none", marker = ".", markersize = "0.5") #interseismic phase
+      end
+
+      plt.xlabel("Cumulative Slip (m)");
+      plt.ylabel("Distance Down Dip (km)");
+      plt.ylim(vert_limits)
+end
+
+
+function plot_with_slow_slip(filename; headerlines=1, vert_limits = (-40, 0))
+
+  grid = readdlm(filename, Float64, skipstart=headerlines)
+  sz = size(grid)
+  flt_loc = grid[1,3:end]
+  if flt_loc[end] > 0
+    flt_loc = -flt_loc
+  end
+
+  T = grid[2:sz[1],1]
+  maxV = grid[2:end, 2]
+  slip = grid[2:sz[1], 3:sz[2]]
+  N = size(slip)[2]
+
+  maxV = maxV[1205:end]
+  T = T[1205:end]
+  slip = slip[1205:end,:]
+  slip0 = slip[1,:]
+  ind = find_ind_withslowslip(maxV);        #finds indices for inter/slow/co-seismic phases
+
+  #ind = [1 39 43 51 233 241 295 298 307 485 498 548]
+  
+  interval = [5*31556926 (1/(2)).*31556926 5*31556926 1 (1/(2)).*31556926]   #plot every 5 years, 6 mos. and every 1 second
+  
+  ct = 0   #this counts the number of events
+
+
+  #Assumes an initial interseismic period
+  #This for-loop only plots completed phases
+  for i = 1:5:20#length(ind)
+    
+    T1 = T[ind[i]]:interval[1]:T[ind[i+1]];
+    @show "interseismic 1"
+ @show size(T1)
+ 
+    W1 = interp1(T,slip[:,1],T1)';
+    
+    for j = 2:N 
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+
+      W1 = [W1; w1]
+    end
+
+    if i == 1
+      plt.plot(W1, flt_loc, color = "blue")#, ls = "none"), marker = ".", markersize = "0.5"); #interseismic phase
+    else
+      plt.plot(W1, flt_loc, color = "blue")#, ls = "none", marker = ".", markersize = "0.5"); #interseismic phase
+    end
+    plt.xlabel("Cumulative Slip (m)");
+    plt.ylabel("Distance Down Dip (km)");
+    plt.ylim(vert_limits)
+   
+    T1 = T[ind[i+1]]:interval[2]:T[ind[i+2]];
+    @show "slow"
+ @show size(T1)
+
+    W1 = interp1(T,slip[:,1],T1)';
+    for j = 2:N 
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+      W1 = [W1; w1]
+    end
+
+    plt.plot(W1, flt_loc, color = "cyan")#, ls = "none", marker = ".", markersize = "0.5"); #coseismic phase
+
+
+    T1 = T[ind[i+2]]:interval[3]:T[ind[i+3]];
+    @show "interseismic 2"
+ @show size(T1)
+
+    W1 = interp1(T,slip[:,1],T1)';
+    for j = 2:N 
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+      W1 = [W1; w1]
+    end
+
+    plt.plot(W1, flt_loc, color = "blue")#, ls = "none", marker = ".", markersize = "0.5"); #coseismic phase
+
+
+
+    T1 = T[ind[i+3]]:interval[4]:T[ind[i+4]];
+    @show "coseismic"
+    @show size(T1)
+
+    W1 = interp1(T,slip[:,1],T1)';
+    for j = 2:N 
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+      W1 = [W1; w1]
+    end
+
+    plt.plot(W1, flt_loc, color = "red")#, ls = "none", marker = ".", markersize = "0.5"); #coseismic phase
+
+
+     T1 = T[ind[i+4]]:interval[5]:T[ind[i+5]];
+     @show "post"
+    @show size(T1)
+
+    W1 = interp1(T,slip[:,1],T1)';
+    for j = 2:N 
+      w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+      W1 = [W1; w1]
+    end
+
+    plt.plot(W1, flt_loc, color = "cyan")#, ls = "none", marker = ".", markersize = "0.5"); #coseismic phase
+
+    ct = ct+1;
+  end
+
+  
+  # plot remainder of an incomplete interseismic period:
+  # i = length(ind)-1;
+  # T1 = T[ind[i]]:interval[1]:T[ind[i+1]];
+  # W1 = interp1(T,slip[:,1],T1)';
+      
+  #     for j = 2:N 
+  #       w1 = interp1(T,slip[:,j] .- slip0[j],T1)';
+  #       W1 = [W1; w1]
+  #     end
+  #     if i == 1
+  #       plt.plot(W1, flt_loc, color = "blue", ls = "none", marker = ".", markersize = "0.5") #interseismic phase
+  #     else
+  #       plt.plot(W1, flt_loc, color = "blue", ls = "none", marker = ".", markersize = "0.5") #interseismic phase
+  #     end
+
+  
+end
+
+
+
+
+function plot_max_slip_rate(filename; start_idx = 1, headerlines=1, vert_limits = (-40, 0))
+
+  grid = readdlm(filename, Float64, skipstart=headerlines)
+  sz = size(grid)
+  T = grid[2:sz[1],1]
+  T = T./31556926
+  maxV = grid[2:end, 2]
+ 
+  #plt.plot(T[start_idx:end],maxV[start_idx:end], color = "blue", marker = ".", )
+  plt.plot(maxV[start_idx:end], color = "blue", marker = ".", )
+  plt.xlabel("Time (yrs)");
+  plt.ylabel("Max(V) (m/s)");
+end
+
+
+
+function plot_global(field, filename)
+
+  @show filename
+  grid = readdlm(filename)#, Float64)  # some elements cannot be parsed as numbers, 
+                                       # a heterogeneous array of numbers and strings is returned.
+  sz = size(grid)
+  
+  # indexing `grid` starting at row 9 to skip the header info
+  T = grid[11:end, 1]  # Get time.
+  T = T ./ 31556926 # convert to years.
+ @show field
+  if field == "maxV"
+    y = grid[11:sz[1],2]
+    plt.plot(T, y)
+  elseif field == "moment_rate"
+    y = grid[11:sz[1],3]
+    plt.plot(T, y)
+  else
+    print("field not recognized")
+  end
+  gui()
+    #return nothing
+end
+
+
+
+# plot_fault_time_series will plot field "field" from "filename".
+# "field" has to be one of "slip", "V", "shear_stress", "state"
+function plot_fault_time_series(field, filename; mylabel = "", indices_only = false, headerlines = 2)
+
+  @show filename
+  grid = readdlm(filename)#, Float64)  # some elements cannot be parsed as numbers, 
+                                       # a heterogeneous array of numbers and strings is returned.
+  sz = size(grid)
+  
+  # indexing `grid` starting at row headerlines to skip the header info
+  T = grid[headerlines:end, 1]  # Get time.
+  T = T ./ 31556926 # convert to years.
+ @show field
+  if field == "slip"
+    y = grid[headerlines:sz[1],2]
+    plt.plot(T, y, label = mylabel)
+    ylabel("slip [m]")
+  elseif field == "slip_rate"
+    y = grid[headerlines:sz[1],3]
+    if indices_only
+      plt.scatter([1:length(y)], y, label = mylabel)
+    else
+      plt.plot(T, y, label = mylabel)
+    end
+    ylabel("log(slip rate [m/s])")
+  elseif field == "shear_stress"
+    y = grid[headerlines:sz[1],4]
+    plt.plot(T, y, label = mylabel)
+    ylabel("shear stress [MPa]")
+  elseif field == "normal_stress"
+    y = grid[headerlines:sz[1],5]
+    plt.plot(T, y, label = mylabel)
+    ylabel("normal stress [MPa]")
+  elseif field == "stress_ratio"
+    yt = grid[headerlines:sz[1],4]
+    yn = grid[headerlines:sz[1],5]
+    plt.plot(T, yt ./ yn, label = mylabel)
+    ylabel("shear/normal []")
+  elseif field == "state"
+    y = grid[headerlines:sz[1],6]
+    plt.plot(T, y, label = mylabel)
+    ylabel("state")
+  else
+    print("field not recognized")
+  end
+  legend()
+  if indices_only
+    xlabel("index")
+  else
+    xlabel("time [yr]")
+  end
+  #gui()
+    #return nothing
+end
+
+
+# Function for reading in numerical parameters 
+# TODO: modify this for a 3D input file!
+function read_params_3D(f_name)
+  f = open(f_name, "r")
+  tmp_params = []
+  while ! eof(f)
+      s = readline(f)
+      if s[1] != '#'
+          push!(tmp_params, split(s, '=')[2])
+          flush(stdout)
+      end
+  end
+  close(f)
+    params = Vector{Any}(undef, 24)
+  params[1] = tmp_params[1]
+  params[2] = tmp_params[2]
+    for i = 3:length(tmp_params)-1
+      params[i] = parse(Float64, tmp_params[i])
+    end
+    params[24] = parse(Int64, tmp_params[24])
+  return params
+end
+
+
+# animate_slip will plot slip profiles against depth for every time step computed:
+function animate_slip(S, δNp, zf, stride_time)
+
+  m = length(zf)
+  no_time_steps = size(S.t)
+  slip_final = S.u[end][end]
+
+  for i = 1:stride_time:no_time_steps[1]
+
+    slip_t = S.u[i][δNp+1:end] # slip at time t
+    #pyplot()
+    display(plot(slip_t, -zf, xtickfont=font(18),
+    ytickfont=font(18),
+    guidefont=font(18),
+    legendfont=font(18), ylabel = "Depth (km)", xlabel = "Slip (m)", xlims = (0, slip_final)))
+    sleep(0.1)
+  end
+
+  #nothing
+end
+
+
+
+# {{{ Constructor for inp files
+function read_inp_3d(T, S, filename::String; bc_map=1:10000)
+  # {{{ Read in the file
+  f = try
+    open(filename)
+  catch
+    error("InpRead cannot open \"$filename\" ")
+  end
+  lines = readlines(f)
+  close(f)
+  # }}}
+
+  # {{{ Read in nodes
+  str = "NSET=ALLNODES"
+  linenum = SeekToSubstring(lines, str);
+  linenum > 0 || error("did not find: $str")
+  num_nodes = 0
+  for l = linenum+1:length(lines)
+    occursin(r"^\s*[0-9]*\s*,.*", lines[l]) ? num_nodes+=1 : break
+  end
+  Vx = fill(S(NaN), num_nodes)
+  Vy = fill(S(NaN), num_nodes)
+  Vz = fill(S(NaN), num_nodes)
+  for l = linenum .+ (1:num_nodes)
+    node_data = split(lines[l], r"\s|,", keepempty=false)
+    (node_num, node_x, node_y, node_z) = try
+      (parse(T, node_data[1]),
+       parse(S, node_data[2]),
+       parse(S, node_data[3]),
+       parse(S, node_data[4]))
+    catch
+      error("cannot parse line $l: \"$(lines[l])\" ")
+    end
+
+    Vx[node_num] = node_x
+    Vy[node_num] = node_y
+    Vz[node_num] = node_z
+  end
+  # }}}
+
+
+
+  # {{{ Read in Elements
+  str = "ELEMENT"
+  linenum = SeekToSubstring(lines, str);
+  num_elm = 0
+  while linenum > 0
+    for l = linenum .+ (1:length(lines))
+      occursin(r"^\s*[0-9]*\s*,.*", lines[l]) ? num_elm+=1 : break
+    end
+    linenum = SeekToSubstring(lines, str; first=linenum+1)
+  end
+  num_elm > 0 || error("did not find any element")
+
+  EToV = fill(T(0), 8, num_elm)
+  EToBlock = fill(T(0), num_elm)
+  linenum = SeekToSubstring(lines, str);
+  while linenum > 0
+    foo = split(lines[linenum], r"[^0-9]", keepempty=false)
+    B = parse(T, foo[end])
+    for l = linenum .+ (1:num_elm)
+      elm_data = split(lines[l], r"\s|,", keepempty=false)
+      # read into z-order
+      # TODO: alter below line to address ordering
+      (elm_num, elm_v1, elm_v2, elm_v4, elm_v3, elm_v5, elm_v6, elm_v8, elm_v7) = try
+        (parse(T, elm_data[1]),
+         parse(T, elm_data[2]),
+        parse(T, elm_data[3]),
+        parse(T, elm_data[4]),
+        parse(T, elm_data[5]),
+        parse(T, elm_data[6]),
+        parse(T, elm_data[7]),
+        parse(T, elm_data[8]),
+        parse(T, elm_data[9]))
+      catch
+        break
+      end
+      EToV[:, elm_num] = [elm_v1, elm_v2, elm_v3, elm_v4, elm_v5, elm_v6, elm_v7, elm_v8]
+      EToBlock[elm_num] = B
+    end
+    linenum = SeekToSubstring(lines, str; first=linenum+1)
+  end
+  # }}}
+
+  # {{{ Determine connectivity
+  EToF = fill(T(0), 6, num_elm)
+
+  VsToF = Dict{Tuple{Int64, Int64, Int64, Int64}, Int64}()
+  numfaces = 0
+
+  for e = 1:num_elm
+    for lf = 1:6
+      if lf == 1
+        Vs = (EToV[1, e], EToV[3, e], EToV[5, e], EToV[7, e])
+      elseif lf == 2
+        Vs = (EToV[2, e], EToV[4, e], EToV[6, e], EToV[8, e])
+      elseif lf == 3
+        Vs = (EToV[1, e], EToV[2, e], EToV[5, e], EToV[6, e])
+      elseif lf == 4
+        Vs = (EToV[3, e], EToV[4, e], EToV[7, e], EToV[8, e])
+      elseif lf == 5
+        Vs = (EToV[1, e], EToV[2, e], EToV[3, e], EToV[4, e]) #TODO: this section should be checked
+      elseif lf == 6
+        Vs = (EToV[5, e], EToV[6, e], EToV[7, e], EToV[8, e])
+      end
+
+      Vs = sort(Vs)
+
+      if haskey(VsToF, Vs)
+        EToF[lf, e] = VsToF[Vs]
+      else
+        numfaces = numfaces + 1
+        EToF[lf, e] = VsToF[Vs] = numfaces
+      end
+    end
+  end
+  #}}}
+
+  # {{{ Read in side set info
+  FToB = Array{T, 1}(undef, numfaces)
+  fill!(FToB, BC_LOCKED_INTERFACE)
+  linenum = SeekToSubstring(lines, "\\*ELSET")
+  #TODO: check this section:
+  inp_to_zorder = [5, 6, 3, 2, 4, 1]
+  while linenum > 0
+    foo = split(lines[linenum], r"[^0-9]", keepempty=false)
+    (bc, face) = try
+      (parse(T, foo[1]),
+       parse(T, foo[2]))
+    catch
+      error("cannot parse line $linenum: \"$(lines[linenum])\" ")
+    end
+    bc = bc_map[bc]
+    face = inp_to_zorder[face]
+    for l = linenum+1:length(lines)
+      if !occursin(r"^\s*[0-9]+", lines[l])
+        break
+      end
+      elms = split(lines[l], r"\s|,", keepempty=false)
+      for elm in elms
+        elm = try
+          parse(T, elm)
+        catch
+          error("cannot parse line $linenum: \"$(lines[l])\" ")
+        end
+
+        FToB[EToF[face, elm]] = bc
+        @assert (bc == BC_DIRICHLET || bc == BC_NEUMANN || bc == EARTH_SURFACE ||
+                bc == BC_LOCKED_INTERFACE || bc >= BC_JUMP_INTERFACE)
+      end
+    end
+    linenum = SeekToSubstring(lines, "\\*ELSET"; first=linenum+1)
+  end
+  # }}}
+
+  ([Vx Vy Vz]', EToV, EToF, FToB, EToBlock)
+end
+read_inp_3d(filename;kw...) = read_inp_3d(Int64, Float64, filename;kw...)
+
+function SeekToSubstring(lines, substring; first=1)
+  for l = first:length(lines)
+    if occursin(Regex(".*$(substring).*"), lines[l])
+      return l
+    end
+  end
+  return -1
+end
+
+
+
+function setupfaultcoord(lop, FToB, FToE, FToLF, faults, psi)
+  T = Float64
+  fault_coords = Matrix{Float64}(undef, 0, 2) # intialize with length 0; will be appended
+
+  nfaces = size(FToE, 2) # total number of faces
+  
+  for f = 1:nfaces # loop over all faces
+      if FToB[f] ∈ faults # determine if face is a fault
+        (e1, _) = FToE[:, f] # get element on minus side of fault
+        (lf1, _) = FToLF[:, f] # get element's local face
+        xf = lop[e1].facecoord[1][lf1] # get physical coordinates of element's local face
+        yf = lop[e1].facecoord[2][lf1] # TODO: check this for 3D sim. I think this is actually z?
+        xdf = yf ./ sind(psi)  # calculate distance down dip
+        fault_coords = [fault_coords; [xf xdf]]
+      end
+  end
+
+  return (coords = fault_coords, Vmax = Array{T, 1}(undef, 0), slip1 = Vector{Vector{T}}(undef, 0), slip2 = Vector{Vector{T}}(undef, 0), 
+          t=Array{T, 1}(undef, 0))
+end
+
+
+function setup_off_faultstations(locations, lop, FToB, FToE, FToLF, earth_free)
+  T = eltype(locations) # should be Float64 
+  @assert size(locations, 2) == 2
+  numstations = size(locations, 1) # total number of stations
+  station_ind = zeros(Int64, numstations)
+  station_face = zeros(Int64, numstations)
+  nfaces = size(FToE, 2) # total number of faces
+
+
+  for s = 1:numstations
+    xs = locations[s, 1]
+    ys = locations[s, 2] #location specified TODO: check this for 3D sim, ys should be z?
+    station_ind[s] = 0
+    station_face[s] = 0
+    d = typemax(T)
+
+ 
+    for f = 1:nfaces # loop over all faces
+      if FToB[f] == earth_free # determine if face is a free surface
+        (e1, _) = FToE[:, f] # get element on minus side of face
+        (lf1, _) = FToLF[:, f] # get element's local face
+        xf = lop[e1].facecoord[1][lf1] # get physical coordinates of element's local face
+        yf = lop[e1].facecoord[2][lf1]
+        dA = hypot.(xf .- xs, yf .- ys)
+        n = argmin(dA) # find the index corresponding to the physical point on fault closest to station (this will only be a local index for the station). 
+        if dA[n] < d 
+          station_ind[s] = n # store the local index of station
+          d = dA[n]
+          station_face[s] = f # store the face
+        end
+      end
+    end
+
+    (e1, _) = FToE[:, station_face[s]] # find element on minus side of station face
+    (lf1, _) = FToLF[:, station_face[s]] # find local face
+    xf = lop[e1].facecoord[1][lf1][station_ind[s]] # single coordinate corresponding to station
+    yf = lop[e1].facecoord[2][lf1][station_ind[s]] # single coordinate corresponding to station
+    #TODO: zf = ???
+  end
+  return (ind=station_ind, face=station_face,
+          xs = locations[:, 1],
+          ys = locations[:, 2], #TODO: zs?
+          tnext=zeros(T, 1),
+          tdump=zeros(T, 1),
+          t=Array{T, 1}(undef, 0),
+          data=ntuple(n->(u1=Array{T, 1}(undef, 0), #initialize as length 0, since will be appended
+                          u2=Array{T, 1}(undef, 0), #initialize as length 0, since will be appended
+                          u3=Array{T, 1}(undef, 0)),
+                      numstations))
+end
+
+# TODO: modify for 3D
+function setupfaultstations(locations, lop, FToB, FToE, FToLF, faults)
+  T = eltype(locations) # should be Float64 
+  @assert size(locations, 2) == 2 # TODO: should size be 3 for 3D? 
+  numstations = size(locations, 1) # total number of stations
+  station_ind = zeros(Int64, numstations)
+  station_face = zeros(Int64, numstations)
+  nfaces = size(FToE, 2) # total number of faces
+  for s = 1:numstations
+    xs = locations[s, 1]
+    ys = locations[s, 2] #location specified
+    #TODO: zs?
+    station_ind[s] = 0
+    station_face[s] = 0
+    d = typemax(T)
+    for f = 1:nfaces # loop over all faces
+      if FToB[f] ∈ faults # determine if face is a fault
+        (e1, _) = FToE[:, f] # get element on minus side of fault
+        (lf1, _) = FToLF[:, f] # get element's local face
+        xf = lop[e1].facecoord[1][lf1] # get physical coordinates of element's local face
+        yf = lop[e1].facecoord[2][lf1]
+        #TODO: zf? 
+        dA = hypot.(xf .- xs, yf .- ys)
+        n = argmin(dA) # find the index corresponding to the physical point on fault closest to station (this will only be a local index for the station). 
+        if dA[n] < d
+          station_ind[s] = n # store the local index of station
+          d = dA[n]
+          station_face[s] = f # store the face
+        end
+      end
+    end
+
+    (e1, _) = FToE[:, station_face[s]] # find element on minus side of station face
+    (lf1, _) = FToLF[:, station_face[s]] # find local face
+    xf = lop[e1].facecoord[1][lf1][station_ind[s]] # single coordinate corresponding to station
+    yf = lop[e1].facecoord[2][lf1][station_ind[s]] # single coordinate corresponding to station
+    #TODO: zf? 
+  end
+  return (ind=station_ind, face=station_face,
+          xs = locations[:, 1],
+          ys = locations[:, 2],
+          tnext=zeros(T, 1),
+          tdump=zeros(T, 1),
+          t=Array{T, 1}(undef, 0),
+          data=ntuple(n->(V=Array{T, 1}(undef, 0), #initialize as length 0, since will be appended
+                          τ=Array{T, 1}(undef, 0),
+                          σ=Array{T, 1}(undef, 0),
+                          θ=Array{T, 1}(undef, 0),
+                          δ=Array{T, 1}(undef, 0)),
+                      numstations))
+end
+
+# TODO: HEREmodify for 3D
+function savedatafields(ψδ, t, i, stations, off_stations, fault, surface_coords, V_0, FToδstarts, p, base_name="", offfault_base_name = "", slipbase_name = "",
+                         tdump=100)
+  Vmax = 0.0
+  T = Float64
+  
+  if isdefined(i, :fsallast)
+    δNp = div(length(ψδ), 3)
+    dψV = i.fsallast
+
+     if t == 0
+      V = V_0
+    else
+      V  = @view dψV[1*δNp .+ (1:δNp) ]
+    end
+    
+  
+    Vmax = maximum(abs.(extrema(V)))
+    Vmax = Vmax[1]
+   
+
+    ### delerte when done debugging:
+      ψ  = @view ψδ[        (1:δNp) ]
+      δ  = @view ψδ[ δNp .+ (1:δNp) ] 
+      δ2  = @view ψδ[ 2*δNp .+ (1:δNp) ] 
+      dψ = @view dψV[       (1:δNp) ]
+
+      # @show (ψ[1], p.σ[1], p.τ[1], V[1])
+    ###
+   
+    if length(fault.slip[:]) != 0
+     clf()
+    #.scatter(surface_coords, p.u1)
+    plt.scatter(fault.coords[:, 2], δ)
+    #plt.scatter(fault.coords[:, 2], p.σ)
+    #plt.scatter(fault.coords[:, 2], p.σ0)
+
+    end
+  
+
+    tlast = length(stations.t) > 0 ? stations.t[end] : -2year_seconds # if stations.t not empty, set tlast = stations.t[end]; otherwise set tlast = -2year_seconds
+    tnext = tlast + (Vmax > 1e-3 ? 0.1 : year_seconds) # if Vmax > 1e-3 then add 0.1 to tlast; otherwise add year_seconds
+
+    # the following is going to append lists, but not write them to file yet. 
+    if (t >= tnext) #check if the time step taken is bigger that 0.1 s (coseismic) or 1 year (aseismic). If it is, then save data by appending lists.
+      ψ  = @view ψδ[        (1:δNp) ]
+      δ  = @view ψδ[ δNp .+ (1:δNp) ] 
+      δ2  = @view ψδ[ 2*δNp .+ (1:δNp) ] 
+      dψ = @view dψV[       (1:δNp) ]
+
+      tlast = tnext
+      #@show (t/year_seconds, Vmax)
+      
+      push!(fault.t, t)
+      push!(fault.slip, δ)
+      push!(fault.Vmax, Vmax)
+
+      push!(stations.t, t)
+      push!(off_stations.t, t)
+      numstations = length(stations.data)
+      num_offfault_stations = length(off_stations.data)
+      for s = 1:numstations
+        f = stations.face[s] # get face station s is on. 
+        n = stations.ind[s] + FToδstarts[f] - 1 # calculate global station index.
+        push!(stations.data[s].V, V[n]) # append slip rate at station s
+        push!(stations.data[s].θ, (p.RSDc * exp((ψ[n] - p.RSf0) / p.RSb) /
+                                   p.RSV0))
+        push!(stations.data[s].δ, δ[n])
+        push!(stations.data[s].τ, p.τ[n] - p.η * V[n])
+        push!(stations.data[s].σ, p.σ[n])
+      end
+
+      for s = 1:num_offfault_stations
+        f = off_stations.face[s] # get face station s is on. 
+        n = off_stations.ind[s] + FToδstarts[f] - 1 # calculate global station index.
+        push!(off_stations.data[s].u1, p.u1[n]) # append slip rate at station s
+        #push!(off_stations.data[s].u2, u2[n])
+        push!(off_stations.data[s].u3, p.u3[n])
+   
+      end
+      println("took a step")
+  
+
+      if t == 0
+        
+        println("saving data with basename = $base_name")
+
+        open("$(slipbase_name).dat", "w") do f # This will overwrite the file everytime (it's not appending it!)
+          write(f, "z t max_slip_rate slip\n")
+
+          z = fault.coords[:, 2]
+         # sort!(z)
+     
+          
+          t = fault.t 
+          Vmaxvec = fault.Vmax
+          slip = fault.slip[:]
+         
+          for i = 1:2
+            write(f, "$(0) ")
+          end
+          for k = 1:length(z)
+            write(f, "$(z[k]) ")
+          end
+          write(f, "\n")
+          for n = 1:length(t)
+            write(f, "$(t[n]) $(log10(abs(Vmaxvec[n]))) ")
+            for k = 1:length(slip[1])
+              write(f, "$(slip[n][k]) ")
+            end
+            write(f, "\n")
+          end
+        end
+
+        # SAVE OFF-FAULT STATION DATA
+        #offfault_base_name 
+         for s = 1:num_offfault_stations
+          open("$(offfault_base_name)$(round(off_stations.xs[s],digits=2))_$(round(off_stations.ys[s],digits=2)).dat", "w") do f # This will overwrite the file everytime (it's not appending it!)
+            write(f, "t u1 u3\n")
+            t = off_stations.t
+            u1 = off_stations.data[s].u1
+            #u2 = off_stations.data[s].u2
+            u3 = off_stations.data[s].u3
+          
+            for n = 1:length(t)
+              
+              write(f, "$(t[n]) $(u1[n]) $(u3[n])\n")
+            end
+          end
+        end
+
+
+        # SAVE ON FAULT STATION DATA
+        for s = 1:numstations
+          open("$(base_name)$(round(stations.xs[s],digits=2))_$(round(stations.ys[s],digits=2)).dat", "w") do f # This will overwrite the file everytime (it's not appending it!)
+            write(f, "t slip slip_rate shear_stress normal_stress state\n")
+            t = stations.t
+            δ = stations.data[s].δ
+            V = stations.data[s].V
+            θ = stations.data[s].θ
+            τ = stations.data[s].τ
+            σ = stations.data[s].σ
+            for n = 1:length(t)
+              
+              write(f, "$(t[n]) $(δ[n]) $(log10(abs(V[n]))) $(τ[n]) $(σ[n]) $(log10(θ[n]))\n")
+            end
+          end
+        end
+        #NOW reset stations and fault to length 0 arrays:
+        empty!(stations.t)
+        empty!(off_stations.t)
+        for s = 1:numstations
+          empty!(stations.data[s].V)
+          empty!(stations.data[s].δ)
+          empty!(stations.data[s].τ)
+          empty!(stations.data[s].σ)
+          empty!(stations.data[s].θ)
+        end
+        
+        for s = 1:num_offfault_stations
+          empty!(off_stations.data[s].u1)
+          #empty!(off_stations.data[s].u2)
+          empty!(off_stations.data[s].u3)
+        end
+        empty!(fault.Vmax)
+        empty!(fault.slip)
+        empty!(fault.t)
+        
+        
+
+
+      
+      elseif length(stations.t) > 1 &&
+        ceil((stations.t[end] / tdump)) > ceil((stations.t[end-1] / tdump)) # if length(t) == 1 or if tdump = 10years have passed, dump/append data disk and reset lists to length 0
+        println("saving data with basename = $base_name")
+
+        open("$(slipbase_name).dat", "a") do f 
+          
+          t = fault.t 
+          Vmaxvec = fault.Vmax
+          slip = fault.slip[:]
+         
+          for n = 1:length(t)
+            write(f, "$(t[n]) $(log10(abs(Vmaxvec[n]))) ")
+            for k = 1:length(slip[1])
+              write(f, "$(slip[n][k]) ")
+            end
+            write(f, "\n")
+          end
+        end
+
+        for s = 1:numstations
+          open("$(base_name)$(round(stations.xs[s],digits=2))_$(round(stations.ys[s], digits=2)).dat", "a") do f 
+            t = stations.t
+            δ = stations.data[s].δ
+            V = stations.data[s].V
+            θ = stations.data[s].θ
+            τ = stations.data[s].τ
+            σ = stations.data[s].σ
+            for n = 1:length(t)
+              
+              write(f, "$(t[n]) $(δ[n]) $(log10(abs(V[n]))) $(τ[n]) $(σ[n]) $(log10(θ[n]))\n")
+            end
+          end
+        end
+
+        for s = 1:num_offfault_stations
+          open("$(offfault_base_name)$(round(off_stations.xs[s],digits=2))_$(round(off_stations.ys[s], digits=2)).dat", "a") do f 
+            t = off_stations.t
+            u1 = off_stations.data[s].u1
+            #u2 = off_stations.data[s].u2
+            u3 = off_stations.data[s].u3
+            
+            for n = 1:length(t)
+              
+              write(f, "$(t[n]) $(u1[n]) $(u3[n])\n")
+            end
+          end
+        end
+
+        # reset stations and fault to length 0 arrays:
+        empty!(stations.t)
+        empty!(off_stations.t)
+        for s = 1:numstations
+          empty!(stations.data[s].V)
+          empty!(stations.data[s].δ)
+          empty!(stations.data[s].τ)
+          empty!(stations.data[s].σ)
+          empty!(stations.data[s].θ)
+        end
+
+        for s = 1:num_offfault_stations
+          empty!(off_stations.data[s].u1)
+          #empty!(off_stations.data[s].u2)
+          empty!(off_stations.data[s].u3)
+        end
+        empty!(fault.Vmax)
+        empty!(fault.slip)
+        empty!(fault.t)
+        
+        
+    
+      else
+      end
+    end
+  end
+
+  Vmax
+end
+
+
+
+# TODO: modify for 3D
+function savefaultstation(ψδ, t, i, stations, FToδstarts, p, base_name="",
+                         tdump=100)
+  Vmax = 0.0
+
+  if isdefined(i, :fsallast)
+    δNp = div(length(ψδ), 2)
+    dψV = i.fsallast
+    V  = @view dψV[δNp .+ (1:δNp) ]
+    
+  
+    Vmax = maximum(abs.(extrema(V)))
+    #(Vmax, idx) = findmax(abs.(extrema(V)))
+    #dp = p.fault_nodes[idx]
+
+    tlast = length(stations.t) > 0 ? stations.t[end] : -2year_seconds # if stations.t not empty, set tlast = stations.t[end]; otherwise set tlast = -2year_seconds
+    tnext = tlast + (Vmax > 1e-3 ? 0.1 : year_seconds) # if Vmax > 1e-3 then add 0.1 to tlast; otherwise add year_seconds
+    # the following is going to append lists, but not write them to file yet. 
+    if (t >= tnext)
+      ψ  = @view ψδ[        (1:δNp) ]
+      δ  = @view ψδ[ δNp .+ (1:δNp) ]
+      dψ = @view dψV[       (1:δNp) ]
+      tlast = tnext
+      #@show (t/year_seconds, Vmax)
+      push!(stations.t, t)
+      
+      numstations = length(stations.data)
+      for s = 1:numstations
+        f = stations.face[s] # get face station s is on. 
+        n = stations.ind[s] + FToδstarts[f] - 1 # calculate global station index.
+        push!(stations.data[s].V, V[n]) # append slip rate at station s
+        push!(stations.data[s].θ, (p.RSDc * exp((ψ[n] - p.RSf0) / p.RSb) /
+                                   p.RSV0))
+        push!(stations.data[s].δ, δ[n])
+        push!(stations.data[s].τ, p.τ[n] - p.η * V[n])
+         push!(stations.data[s].σ, p.σ)
+      end
+      println("took a step")
+      println(stations.t)
+      # if length(t) == 1 or if tdump = 10years have passed, dump data to file
+      if length(stations.t) == 1 ||
+        ceil((stations.t[end] / tdump)) > ceil((stations.t[end-1] / tdump))
+        println("saving data with basename = $base_name")
+        for s = 1:numstations
+          open("$(base_name)$(stations.xs[s])_$(stations.ys[s]).dat", "w") do f # This will overwrite the file everytime (it's not appending it!)
+            write(f, "t slip slip_rate shear_stress state\n")
+            t = stations.t
+            δ = stations.data[s].δ
+            V = stations.data[s].V
+            θ = stations.data[s].θ
+            τ = stations.data[s].τ
+            σ = stations.data[s].σ
+            for n = 1:length(t)
+              write(f, "$(t[n]) $(δ[n]) $(log10(abs(V[n]))) $(τ[n]) $(σ[n]) $(log10(θ[n]))\n")
+            end
+          end
+        end
+      end
+    end
+  end
+  Vmax
+end
+
+# TODO: modify for 3D
+function create_text_files(pth, flt_loc, flt_loc_indices, stations, station_strings, station_indices, t, RSVinit, δ, τz0, θ)
+
+
+  path_to_slip = pth * "slip.dat"
+  # slip.dat is a file that stores time, max(V) and slip at all the stations:
+  open(path_to_slip, "w") do io
+    write(io,"0.0 0.0 ")
+      for i in 1:length(flt_loc)
+        write(io,"$(flt_loc[i]) ")
+      end
+        write(io,"\n")
+    end
+  
+  #write out initial data into devol.txt:
+  vv = Array{Float64}(undef, 1, 2+length(flt_loc))
+    vv[1] = t
+    vv[2] = log10(RSVinit)
+    vv[3:end] = δ[flt_loc_indices]
+    open(path_to_slip, "a") do io
+        writedlm(io, vv)
+    end
+
+  # write out initial data into station files:
+
+  # fltst_dpXXX.txt is a file that stores time and time-series of slip, log10(slip_rate), 
+  # shear_stress and log10(state) at depth of z = XXX km, where XXX is each of the fault station depths.
+  # First we write out initial data into each fltst_dpXXX.txt:
+
+  for n = 1:length(station_strings)
+    XXX = pth * "fltst_strk"*station_strings[n]*".txt"
+    ww = Array{Float64}(undef, 1, 5)
+    ww[1] = t
+    ww[2] = δ[station_indices[n]]
+    ww[3] = log10(RSVinit)
+    ww[4] = τz0
+    ww[5] = log10(θ[station_indices[n]])  # 
+    open(XXX, "w") do io
+      write(io, "# problem=SEAS Benchmark BP1-QD\n")  # 
+      write(io, "# code=Thrase\n")
+      write(io, "# modeler=B. A. Erickson\n")
+      write(io, "# date=2023/01/09\n")
+      write(io, "# element size=xx m\n")
+      write(io, "# location=on fault, z = "*string(parse(Int64, station_strings[n])/10)*" km\n")
+      write(io, "# Lz = 40 km\n")
+      write(io, "t slip slip_rate shear_stress state\n")
+
+      writedlm(io, ww)
+    end
+  end
+
+end
+
+# TODO: modify for 3D
+function write_to_file(pth, ψδ, t, i, zf, flt_loc, flt_loc_indices, station_strings, station_indices, p, base_name="", tdump=100)
+  
+  path_to_slip = pth * "slip.dat"
+  Vmax = 0.0
+
+  if isdefined(i,:fsallast) 
+    δNp = p.δNp
+    Nz = p.N
+    dψV = i.fsallast
+    dψ = @view dψV[1:δNp]
+    V = @view dψV[δNp .+ (1:Nz+1)]
+    Vmax = maximum(abs.(extrema(V)))
+    δ = @view ψδ[δNp .+ (1:Nz+1)]
+    ψ = @view ψδ[1:δNp]
+    τf = p.τf
+  
+ 
+    θ = (p.RSDc * exp.((ψ .- p.RSf0) ./ p.RSb)) / p.RSV0  # Invert ψ for θ.
+  
+    if mod(ctr[], p.save_stride_fields) == 0 || t == (p.sim_years ./ 31556926)
+      vv = Array{Float64}(undef, 1, 2+length(flt_loc))
+      vv[1] = t
+      vv[2] = log10(Vmax)
+      vv[3:end] = δ[flt_loc_indices]
+      open(path_to_slip, "a") do io
+        writedlm(io, vv)
+      end
+
+      for i = 1:length(station_indices)
+        ww = Array{Float64}(undef, 1, 5)
+        ww[1] = t
+        ww[2] = δ[station_indices[i]]
+        ww[3] = log10(V[station_indices[i]])
+        ww[4] = τf[station_indices[i]]
+        ww[5] = log10(θ[station_indices[i]])
+
+        XXX = pth * "fltst_strk"*station_strings[i]*".txt"
+        open(XXX, "a") do io
+            writedlm(io, ww)
+        end
+      end
+      
+    end
+  
+    global ctr[] += 1
+  end
+
+  Vmax
+end
+
+
+
+
+  export setupfaultstations, savefaultstation, setup_off_faultstations
+  export read_params_3D,  plot_slip, plot_fault_time_series, find_ind 
+  export find_station_index, read_inp_3d
+  export stepcheck
+  export animate_slip, interp1
+  export create_text_files, write_to_file
