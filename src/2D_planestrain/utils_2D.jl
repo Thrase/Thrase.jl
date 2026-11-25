@@ -328,8 +328,8 @@ function plot_max_slip_rate(filename; start_idx = 1, headerlines=1, vert_limits 
   T = T./31556926
   maxV = grid[2:end, 2]
  
-  #plt.plot(T[start_idx:end],maxV[start_idx:end], color = "blue", marker = ".", )
-  plt.plot(maxV[start_idx:end], color = "blue", marker = ".", )
+  plt.plot(T[start_idx:end],maxV[start_idx:end], color = "blue", marker = ".", )
+  #plt.plot(maxV[start_idx:end], color = "blue", marker = ".", )
   plt.xlabel("Time (yrs)");
   plt.ylabel("Max(V) (m/s)");
 end
@@ -458,6 +458,35 @@ function read_params_planestrain(f_name)
       params[i] = parse(Float64, tmp_params[i])
     end
     params[24] = parse(Int64, tmp_params[24])
+  return params
+end
+
+# Function for reading in numerical parameters 
+function read_params_planestrain_fluids(f_name)
+  f = open(f_name, "r")
+  tmp_params = []
+  while ! eof(f)
+      s = readline(f)
+      if s[1] != '#'
+          push!(tmp_params, split(s, '=')[2])
+          flush(stdout)
+      end
+  end
+  close(f)
+    params = Vector{Any}(undef, 35)
+  params[1] = tmp_params[1]
+  params[2] = tmp_params[2]
+    for i = 3:length(tmp_params)-1
+      params[i] = parse(Float64, tmp_params[i])
+    end
+    params[23] = parse(Int64, tmp_params[23])
+    params[24] = parse(Int64, tmp_params[24])  # SBPp must be Int
+   
+    for i = 2:11
+      params[24+i] = parse(Float64, tmp_params[24+i])
+    end
+
+
   return params
 end
 
@@ -817,6 +846,56 @@ function setupfaultstations(locations, lop, FToB, FToE, FToLF, faults)
                       numstations))
 end
 
+function setupfaultstations_withfluids(locations, lop, FToB, FToE, FToLF, faults)
+  T = eltype(locations) # should be Float64 
+  @assert size(locations, 2) == 2
+  numstations = size(locations, 1) # total number of stations
+  station_ind = zeros(Int64, numstations)
+  station_face = zeros(Int64, numstations)
+  nfaces = size(FToE, 2) # total number of faces
+  for s = 1:numstations
+    xs = locations[s, 1]
+    ys = locations[s, 2] #location specified
+    station_ind[s] = 0
+    station_face[s] = 0
+    d = typemax(T)
+    for f = 1:nfaces # loop over all faces
+      if FToB[f] ∈ faults # determine if face is a fault
+        (e1, _) = FToE[:, f] # get element on minus side of fault
+        (lf1, _) = FToLF[:, f] # get element's local face
+        xf = lop[e1].facecoord[1][lf1] # get physical coordinates of element's local face
+        yf = lop[e1].facecoord[2][lf1]
+        dA = hypot.(xf .- xs, yf .- ys)
+        n = argmin(dA) # find the index corresponding to the physical point on fault closest to station (this will only be a local index for the station). 
+        if dA[n] < d
+          station_ind[s] = n # store the local index of station
+          d = dA[n]
+          station_face[s] = f # store the face
+        end
+      end
+    end
+
+    (e1, _) = FToE[:, station_face[s]] # find element on minus side of station face
+    (lf1, _) = FToLF[:, station_face[s]] # find local face
+    xf = lop[e1].facecoord[1][lf1][station_ind[s]] # single coordinate corresponding to station
+    yf = lop[e1].facecoord[2][lf1][station_ind[s]] # single coordinate corresponding to station
+  end
+  return (ind=station_ind, face=station_face,
+          xs = locations[:, 1],
+          ys = locations[:, 2],
+          tnext=zeros(T, 1),
+          tdump=zeros(T, 1),
+          t=Array{T, 1}(undef, 0),
+          data=ntuple(n->(V=Array{T, 1}(undef, 0), #initialize as length 0, since will be appended
+                          τ=Array{T, 1}(undef, 0),
+                          σn=Array{T, 1}(undef, 0),
+                          θ=Array{T, 1}(undef, 0),
+                          δ=Array{T, 1}(undef, 0),
+                          P=Array{T, 1}(undef, 0),
+                          k=Array{T, 1}(undef, 0)),
+                        numstations))
+end
+
 function savedatafields(ψδ, t, i, stations, off_stations, fault, surface_coords, V_0, FToδstarts, p, base_name="", offfault_base_name = "", slipbase_name = "",
                          tdump=100)
   Vmax = 0.0
@@ -1069,6 +1148,446 @@ function savedatafields(ψδ, t, i, stations, off_stations, fault, surface_coord
 end
 
 
+function savedatafields_with_fluids(ψδ, t, i, stations, off_stations, fault, surface_coords, V_0, FToδstarts, p, base_name="", offfault_base_name = "", slipbase_name = "",
+                         tdump=100)
+  Vmax = 0.0
+  T = Float64
+  
+
+  if isdefined(i, :fsallast)
+    δNp = div(length(ψδ), 6)
+    dψV = i.fsallast
+
+     if t == 0
+      V = V_0
+    else
+      V  = @view dψV[1*δNp .+ (1:δNp) ]
+    end
+    
+  
+    Vmax = maximum(abs.(V))
+    Vmax = Vmax[1]
+   
+
+    ### delerte when done debugging:
+      ψ  = @view ψδ[        (1:δNp) ]
+      δ  = @view ψδ[ δNp .+ (1:δNp) ] 
+      δ2  = @view ψδ[ 2*δNp .+ (1:δNp) ]
+      P =  @view ψδ[ 3*δNp .+ (1:δNp) ]
+      k = @view ψδ[ 4*δNp .+ (1:δNp) ]
+      
+      dψ = @view dψV[       (1:δNp) ]
+
+      # @show (ψ[1], p.σ[1], p.τ[1], V[1])
+    ###
+   
+    # because time step successful: 
+    p.P_old .= P          # update so previous pressure change now stores current, before integrating to next step
+    #p.Δt = t - p.t_current  # update time step to be current time (t) minus the previous time (t_current)
+    p.t_current .= t         # update t_current to be time t. 
+   
+
+    if length(fault.slip[:]) != 0
+     clf()
+    #.scatter(surface_coords, p.u1)
+    plt.scatter(fault.coords[:, 2], δ)
+    #plt.scatter(fault.coords[:, 2], p.σ)
+    #plt.scatter(fault.coords[:, 2], p.σ0)
+
+    end
+  
+
+    tlast = length(stations.t) > 0 ? stations.t[end] : -2year_seconds # if stations.t not empty, set tlast = stations.t[end]; otherwise set tlast = -2year_seconds
+    tnext = tlast + (Vmax > 1e-3 ? 0.1 : year_seconds) # if Vmax > 1e-3 then add 0.1 to tlast; otherwise add year_seconds
+
+    # the following is going to append lists, but not write them to file yet. 
+    if (t >= tnext) #check if the time step taken is bigger that 0.1 s (coseismic) or 1 year (aseismic). If it is, then save data by appending lists.
+      ψ  = @view ψδ[        (1:δNp) ]
+      δ  = @view ψδ[ δNp .+ (1:δNp) ] 
+      δ2  = @view ψδ[ 2*δNp .+ (1:δNp) ] 
+      P =  @view ψδ[ 3*δNp .+ (1:δNp) ]
+      k = @view ψδ[ 4*δNp .+ (1:δNp) ]
+      dψ = @view dψV[       (1:δNp) ]
+
+      tlast = tnext
+      #@show (t/year_seconds, Vmax)
+      
+      push!(fault.t, t)
+      push!(fault.slip, δ)
+      push!(fault.Vmax, Vmax)
+
+      push!(stations.t, t)
+      push!(off_stations.t, t)
+      numstations = length(stations.data)
+      num_offfault_stations = length(off_stations.data)
+      for s = 1:numstations
+        f = stations.face[s] # get face station s is on. 
+        n = stations.ind[s] + FToδstarts[f] - 1 # calculate global station index.
+        push!(stations.data[s].V, V[n]) # append slip rate at station s
+        push!(stations.data[s].θ, (p.RSDc * exp((ψ[n] - p.RSf0) / p.RSb[n]) /
+                                   p.RSV0))
+        push!(stations.data[s].δ, δ[n])
+        push!(stations.data[s].τ, p.τ[n] - p.η * V[n])
+        push!(stations.data[s].σn, p.σn[n])
+        push!(stations.data[s].P, p.P[n])
+        push!(stations.data[s].k, p.k[n])
+      end
+
+      for s = 1:num_offfault_stations
+        f = off_stations.face[s] # get face station s is on. 
+        n = off_stations.ind[s] + FToδstarts[f] - 1 # calculate global station index.
+        push!(off_stations.data[s].u1, p.u1[n]) # append slip rate at station s
+        #push!(off_stations.data[s].u2, u2[n])
+        push!(off_stations.data[s].u3, p.u3[n])
+   
+      end
+      println("took a step")
+  
+
+      if t == 0
+        
+        println("saving data with basename = $base_name")
+
+        open("$(slipbase_name).dat", "w") do f # This will overwrite the file everytime (it's not appending it!)
+          write(f, "z t max_slip_rate slip\n")
+
+          z = fault.coords[:, 2]
+         # sort!(z)
+     
+          
+          t = fault.t 
+          Vmaxvec = fault.Vmax
+          slip = fault.slip[:]
+         
+          for i = 1:2
+            write(f, "$(0) ")
+          end
+          for k = 1:length(z)
+            write(f, "$(z[k]) ")
+          end
+          write(f, "\n")
+          for n = 1:length(t)
+            write(f, "$(t[n]) $(log10(abs(Vmaxvec[n]))) ")
+            for k = 1:length(slip[1])
+              write(f, "$(slip[n][k]) ")
+            end
+            write(f, "\n")
+          end
+        end
+
+        # SAVE OFF-FAULT STATION DATA
+        #offfault_base_name 
+         for s = 1:num_offfault_stations
+          open("$(offfault_base_name)$(round(off_stations.xs[s],digits=2))_$(round(off_stations.ys[s],digits=2)).dat", "w") do f # This will overwrite the file everytime (it's not appending it!)
+            write(f, "t u1 u3\n")
+            t = off_stations.t
+            u1 = off_stations.data[s].u1
+            #u2 = off_stations.data[s].u2
+            u3 = off_stations.data[s].u3
+          
+            for n = 1:length(t)
+              
+              write(f, "$(t[n]) $(u1[n]) $(u3[n])\n")
+            end
+          end
+        end
+
+
+        # SAVE ON FAULT STATION DATA
+        for s = 1:numstations
+          open("$(base_name)$(round(stations.xs[s],digits=2))_$(round(stations.ys[s],digits=2)).dat", "w") do f # This will overwrite the file everytime (it's not appending it!)
+            write(f, "t slip slip_rate shear_stress normal_stress state\n")
+            t = stations.t
+            δ = stations.data[s].δ
+            V = stations.data[s].V
+            θ = stations.data[s].θ
+            τ = stations.data[s].τ
+            σn = stations.data[s].σn
+            P = stations.data[s].P
+            k = stations.data[s].k
+            for n = 1:length(t)
+              
+              write(f, "$(t[n]) $(δ[n]) $(log10(abs(V[n]))) $(τ[n]) $(σn[n]) $(log10(θ[n])) $(P[n]) $(log10(1e6*k[n]))\n")
+            end
+          end
+        end
+        #NOW reset stations and fault to length 0 arrays:
+        empty!(stations.t)
+        empty!(off_stations.t)
+        for s = 1:numstations
+          empty!(stations.data[s].V)
+          empty!(stations.data[s].δ)
+          empty!(stations.data[s].τ)
+          empty!(stations.data[s].σn)
+          empty!(stations.data[s].θ)
+          empty!(stations.data[s].P)
+          empty!(stations.data[s].k)
+        end
+        
+        for s = 1:num_offfault_stations
+          empty!(off_stations.data[s].u1)
+          #empty!(off_stations.data[s].u2)
+          empty!(off_stations.data[s].u3)
+        end
+        empty!(fault.Vmax)
+        empty!(fault.slip)
+        empty!(fault.t)
+        
+      
+      
+      elseif length(stations.t) > 1 &&
+        ceil((stations.t[end] / tdump)) > ceil((stations.t[end-1] / tdump)) # if length(t) == 1 or if tdump = 10years have passed, dump/append data disk and reset lists to length 0
+        println("saving data with basename = $base_name")
+
+        open("$(slipbase_name).dat", "a") do f 
+          
+          t = fault.t 
+          Vmaxvec = fault.Vmax
+          slip = fault.slip[:]
+         
+          for n = 1:length(t)
+            write(f, "$(t[n]) $(log10(abs(Vmaxvec[n]))) ")
+            for k = 1:length(slip[1])
+              write(f, "$(slip[n][k]) ")
+            end
+            write(f, "\n")
+          end
+        end
+
+        for s = 1:numstations
+          open("$(base_name)$(round(stations.xs[s],digits=2))_$(round(stations.ys[s], digits=2)).dat", "a") do f 
+            t = stations.t
+            δ = stations.data[s].δ
+            V = stations.data[s].V
+            θ = stations.data[s].θ
+            τ = stations.data[s].τ
+            σn = stations.data[s].σn
+            P = stations.data[s].P
+            k = stations.data[s].k
+            for n = 1:length(t)
+              
+              write(f, "$(t[n]) $(δ[n]) $(log10(abs(V[n]))) $(τ[n]) $(σn[n]) $(log10(θ[n])) $(P[n]) $(log10(1e6*k[n]))\n")
+            end
+          end
+        end
+
+        for s = 1:num_offfault_stations
+          open("$(offfault_base_name)$(round(off_stations.xs[s],digits=2))_$(round(off_stations.ys[s], digits=2)).dat", "a") do f 
+            t = off_stations.t
+            u1 = off_stations.data[s].u1
+            #u2 = off_stations.data[s].u2
+            u3 = off_stations.data[s].u3
+            
+            for n = 1:length(t)
+              
+              write(f, "$(t[n]) $(u1[n]) $(u3[n])\n")
+            end
+          end
+        end
+
+        # reset stations and fault to length 0 arrays:
+        empty!(stations.t)
+        empty!(off_stations.t)
+        for s = 1:numstations
+          empty!(stations.data[s].V)
+          empty!(stations.data[s].δ)
+          empty!(stations.data[s].τ)
+          empty!(stations.data[s].σn)
+          empty!(stations.data[s].θ)
+          empty!(stations.data[s].P)
+          empty!(stations.data[s].k)
+        end
+
+        for s = 1:num_offfault_stations
+          empty!(off_stations.data[s].u1)
+          #empty!(off_stations.data[s].u2)
+          empty!(off_stations.data[s].u3)
+        end
+        empty!(fault.Vmax)
+        empty!(fault.slip)
+        empty!(fault.t)
+        
+        
+    
+      else
+      end
+    end
+  end
+
+  Vmax
+end
+
+function initial_perm_pressure(P0, k0, p )
+
+  # # Unpack fault mesh (1D) and SBP degree from p
+  #   (fverts, fEToV, fEToF, fEToDomain, fFToB, fFToE, fFToLF, Nf, fflip) = p.F
+  #   SBPp  = p.SBPp
+  #   fnfaces = size(fFToB, 1)
+  #   # Build fstarts for indexing per-element blocks of kprime/pprime (same block sizes as FToδstarts)
+  #   ffstarts = cumsum([1; Nf .+ 1])
+  #   nfault_faces = length(Nf)
+
+  #   # Build permutation between FToδstarts ordering (used by P, P_old, k, kprime)
+  #   # and ffstarts ordering (used by the 1D diffusion operators).
+  #   # Both have the same block sizes; fflip[fc]=true means the within-element DOF order
+  #   # was reversed by faultarrays (original mesh vertex 1 was deeper than vertex 2).
+  #   # The permutation is self-inverse (reversing is an involution).
+  #   perm = collect(1:δNp)
+  #   for fc = 1:nfault_faces
+  #     if fflip[fc]
+  #       rng = ffstarts[fc]:ffstarts[fc+1]-1
+  #       perm[rng] .= reverse(rng)
+  #     end
+  #   end
+
+  #   pprime = copy(P)
+  #   kprime = copy(k)
+  #   err = 1e6
+  #   iter = [0]
+
+  #   while err > 1e-12 && iter[1] < 1000
+  #     σ_eff = max.(p.σ .- pprime, 0.0)  # clamp: when P > σ, effective stress = 0, k = kstar
+  #     kprime_prev = copy(kprime)
+
+  #     kprime .= p.kmin .+ (kstar .- p.kmin) .* exp.(-σ_eff ./ p.σstar)
+
+  #     # Permute kprime to 1D mesh ordering for the diffusion operator.
+  #     # c(x, e, dom) uses the element-wise mean (invariant to ordering).
+  #     kprime_1D = kprime[perm]
+  #     c_vec = kprime_1D ./ (p.η_f * p.n * p.β)
+  #     c = let cv = c_vec, fst = ffstarts
+  #         (x, e, dom) -> begin
+  #             idx = fst[e]:fst[e+1]-1
+  #             sum(cv[idx]) / length(idx)
+  #         end
+  #     end
+
+  #     (M, b, lop, fstarts) = diffusion_rhs(t, Nf, SBPp, fverts, fEToV, fFToB, fEToF, fFToE, fFToLF, fnfaces, fEToDomain, p, c)
+  #     D        = M[1]   # first-derivative operator
+  #     D2z_c_BC = M[2]   # second-order diffusion operator (SBP-SAT with BCs applied)
+
+  #     pprime_prev = copy(pprime)
+
+  #     # Convert P_old and gravity term to 1D ordering before the linear solve.
+  #     P_old_1D   = P_old[perm]
+  #     kprime_grav_1D = kprime_1D .* p.ρ_f .* p.g ./ (p.n * p.β * p.η_f)   # already in 1D ordering
+
+  #     pprime_1D = (1/Δt * I - D2z_c_BC)\(P_old_1D ./ Δt - D*kprime_grav_1D - b)
+
+      
+  #     # Convert result back to FToδstarts ordering (perm is self-inverse).
+  #     pprime .= pprime_1D[perm]
+
+  
+  #     err_p = norm(pprime .- pprime_prev) / (norm(pprime) + eps())
+  #     err_k = norm(kprime .- kprime_prev) / (norm(kprime) + eps())
+  #     err = max(err_p, err_k)
+  #     iter[1] += 1
+
+  #   end
+
+  #   if iter[1] >= 1000
+  #     @warn "correct_permeability_and_pressure!: max iterations (10000) reached"
+  #   end
+
+    
+  #   P .= pprime
+  #   k  .= kprime
+
+  # end
+
+end
+
+function correct_permeability_and_pressure!(ψδ, i, p, t)
+  if isdefined(i, :fsallast)
+    δNp = div(length(ψδ), 6)  # 6 components: ψ, δ1, δ2, P, k, kstar
+    dψV = i.fsallast
+
+    P  =     @view ψδ[ 3δNp .+ (1:δNp) ]   # pore pressure
+    k  =     @view ψδ[ 4δNp .+ (1:δNp) ]   # permeability
+    kstar  = @view ψδ[ 5δNp .+ (1:δNp) ]   # target permeability
+
+    Δt = t - p.t_current[1] # time step
+    Δt ≤ 0 && return  # first RK stage is at t = t_current → nothing to advance
+    P_old = p.P_old  # pressure at last accepted step
+      
+    # Unpack fault mesh (1D) and SBP degree from p
+    (fverts, fEToV, fEToF, fEToDomain, fFToB, fFToE, fFToLF, Nf, fflip) = p.F
+    SBPp  = p.SBPp
+    fnfaces = size(fFToB, 1)
+    # Build fstarts for indexing per-element blocks of kprime/pprime (same block sizes as FToδstarts)
+    ffstarts = cumsum([1; Nf .+ 1])
+    nfault_faces = length(Nf)
+
+    # Build permutation between FToδstarts ordering (used by P, P_old, k, kprime)
+    # and ffstarts ordering (used by the 1D diffusion operators).
+    # Both have the same block sizes; fflip[fc]=true means the within-element DOF order
+    # was reversed by faultarrays (original mesh vertex 1 was deeper than vertex 2).
+    # The permutation is self-inverse (reversing is an involution).
+    perm = collect(1:δNp)
+    for fc = 1:nfault_faces
+      if fflip[fc]
+        rng = ffstarts[fc]:ffstarts[fc+1]-1
+        perm[rng] .= reverse(rng)
+      end
+    end
+
+    pprime = copy(P)
+    kprime = copy(k)
+    err = 1e6
+    iter = [0]
+
+    while err > 1e-12 && iter[1] < 1000
+      σ_eff = max.(p.σ .- pprime, 0.0)  # clamp: when P > σ, effective stress = 0, k = kstar
+      kprime_prev = copy(kprime)
+
+      kprime .= p.kmin .+ (kstar .- p.kmin) .* exp.(-σ_eff ./ p.σstar)
+
+      # Permute kprime to 1D mesh ordering for the diffusion operator.
+      # c(x, e, dom) uses the element-wise mean (invariant to ordering).
+      kprime_1D = kprime[perm]
+      c_vec = kprime_1D ./ (p.η_f * p.n * p.β)
+      c = let cv = c_vec, fst = ffstarts
+          (x, e, dom) -> begin
+              idx = fst[e]:fst[e+1]-1
+              sum(cv[idx]) / length(idx)
+          end
+      end
+
+      (M, b, lop, fstarts) = diffusion_rhs(t, Nf, SBPp, fverts, fEToV, fFToB, fEToF, fFToE, fFToLF, fnfaces, fEToDomain, p, c)
+      D        = M[1]   # first-derivative operator
+      D2z_c_BC = M[2]   # second-order diffusion operator (SBP-SAT with BCs applied)
+
+      pprime_prev = copy(pprime)
+
+      # Convert P_old and gravity term to 1D ordering before the linear solve.
+      P_old_1D   = P_old[perm]
+      kprime_grav_1D = kprime_1D .* p.ρ_f .* p.g ./ (p.n * p.β * p.η_f)   # already in 1D ordering
+
+      pprime_1D = (1/Δt * I - D2z_c_BC)\(P_old_1D ./ Δt - D*kprime_grav_1D - b)
+
+      
+      # Convert result back to FToδstarts ordering (perm is self-inverse).
+      pprime .= pprime_1D[perm]
+
+  
+      err_p = norm(pprime .- pprime_prev) / (norm(pprime) + eps())
+      err_k = norm(kprime .- kprime_prev) / (norm(kprime) + eps())
+      err = max(err_p, err_k)
+      iter[1] += 1
+
+    end
+
+    if iter[1] >= 1000
+      @warn "correct_permeability_and_pressure!: max iterations (10000) reached"
+    end
+
+    
+    P .= pprime
+    k  .= kprime
+
+  end
+end
 
 
 
@@ -1080,6 +1599,11 @@ function savefaultstation(ψδ, t, i, stations, FToδstarts, p, base_name="",
     δNp = div(length(ψδ), 2)
     dψV = i.fsallast
     V  = @view dψV[δNp .+ (1:δNp) ]
+
+    ψ  =     @view ψδ[        (1:δNp) ]
+    δ  =     @view ψδ[ δNp .+ (1:δNp) ]
+   
+    dψ = @view dψV[       (1:δNp) ]
     
   
     Vmax = maximum(abs.(extrema(V)))
@@ -1106,7 +1630,7 @@ function savefaultstation(ψδ, t, i, stations, FToδstarts, p, base_name="",
                                    p.RSV0))
         push!(stations.data[s].δ, δ[n])
         push!(stations.data[s].τ, p.τ[n] - p.η * V[n])
-         push!(stations.data[s].σ, p.σ)
+        push!(stations.data[s].σ, p.σ)
       end
       println("took a step")
       println(stations.t)
@@ -1237,7 +1761,7 @@ function write_to_file(pth, ψδ, t, i, zf, flt_loc, flt_loc_indices, station_st
   Vmax
 end
 
-
+# 
 
 
   function read_params_BP1_CT(f_name)
@@ -1478,6 +2002,183 @@ function write_to_file_BP6(pth, ψδ, t, i, zf,flt_loc, flt_loc_indices, station
 
   
 
+#{{{ connectivityarrays
+function connectivityarrays_1D(EToV, EToF)
+  nelems = size(EToV, 2)
+  nfaces = maximum(maximum(EToF))
+
+  FToE  = zeros(Int64, 2, nfaces)
+  FToLF = zeros(Int64, 2, nfaces)
+
+  LFToLV = [1, 2]   
+  for e = 1:nelems
+    for lf = 1:2
+      gf = EToF[lf, e]
+      if FToE[1, gf] == 0
+        @assert FToLF[1, gf] == 0
+        FToE[1, gf] = e
+        FToLF[1, gf] = lf
+      else
+        @assert FToE[2, gf] == 0
+        @assert FToLF[2, gf] == 0
+        FToE[2, gf] = e
+        FToLF[2, gf] = lf
+      end
+    end
+  end
+  (FToE, FToLF)
+end
+#}}}
+
+function faultarrays(coord, EToV, EToF, FToB, Nr)
+  nfaces = maximum(maximum(EToF))
+  nelems = size(EToV, 2)
+
+  # Build FToE (face → elements) and FToLF (face → local face numbers)
+  FToE  = zeros(Int64, 2, nfaces)
+  FToLF = zeros(Int64, 2, nfaces)
+  for e = 1:nelems
+    for lf = 1:4
+      gf = EToF[lf, e]
+      if FToE[1, gf] == 0
+        FToE[1, gf] = e
+        FToLF[1, gf] = lf
+      else
+        FToE[2, gf] = e
+        FToLF[2, gf] = lf
+      end
+    end
+  end
+
+  # Local face index → local vertex indices (z-order quad, matches read_inp_2d)
+  LFToLV = ([1, 3], [2, 4], [1, 2], [3, 4])
+
+  # --- Pass 1: count fault faces ---
+  nfault_faces = 0
+  for i = 1:nfaces
+    if FToB[i] >= BC_JUMP_INTERFACE
+      nfault_faces += 1
+    end
+  end
+
+  # --- Pass 2: fill fault element arrays ---
+  fEToV_global  = zeros(Int64, 2, nfault_faces)  # global vertex indices for each fault element
+  fFToB_fault   = zeros(Int64, nfault_faces)      # BC tag of each fault face (from FToB)
+  Nf            = zeros(Int64, nfault_faces)       # nodes per fault element
+
+  fc = 0
+  for i = 1:nfaces
+    if FToB[i] >= BC_JUMP_INTERFACE
+      fc += 1
+      e1  = FToE[1, i]
+      lf1 = FToLF[1, i]
+      fEToV_global[:, fc] = EToV[LFToLV[lf1], e1]
+      fFToB_fault[fc]     = FToB[i]
+      Nf[fc]              = Nr[e1]
+    end
+  end
+
+  fEToDomain = ones(Int64, nfault_faces)
+
+  # --- Unique fault vertices: actual coordinates (insertion order, not sorted) ---
+  seen   = Dict{Int64, Int64}()       # global vertex index → local fault-vertex index
+  fverts = Matrix{Float64}(undef, 2, 0)  # 2 × nfverts coordinate matrix
+  for fc = 1:nfault_faces
+    for lv = 1:2
+      gv = fEToV_global[lv, fc]
+      if !haskey(seen, gv)
+        seen[gv] = size(fverts, 2) + 1
+        fverts = [fverts coord[:, gv]]
+      end
+    end
+  end
+
+  # Remap fEToV to local fault-vertex indices
+  fEToV_local = zeros(Int64, 2, nfault_faces)
+  for fc = 1:nfault_faces
+    fEToV_local[1, fc] = seen[fEToV_global[1, fc]]
+    fEToV_local[2, fc] = seen[fEToV_global[2, fc]]
+  end
+
+  # Within each element: ensure vertex 1 is shallower than vertex 2 (positive Jacobian).
+  # Uses the natural 2D mesh ordering; no global reordering of elements or vertices.
+  # fflip[fc] = true if the two endpoints were swapped (original v1 was deeper).
+  # This records whether the 1D element ordering differs from the FToδstarts ordering.
+  fflip = zeros(Bool, nfault_faces)
+  for fc = 1:nfault_faces
+    v1, v2 = fEToV_local[1, fc], fEToV_local[2, fc]
+    if fverts[2, v1] < fverts[2, v2]   # v1 is deeper (lower y) → swap
+      fEToV_local[1, fc] = v2
+      fEToV_local[2, fc] = v1
+      fflip[fc] = true
+    end
+  end
+
+  # --- Build 1D fault face connectivity (fEToF) ---
+  # Each unique fault vertex is a 1D "face" (endpoint shared between fault elements)
+  VToFF  = Dict{Int64, Int64}()  # local fault-vertex index → 1D fault face index
+  FFToFV = Dict{Int64, Int64}()  # 1D fault face index → local fault-vertex index
+  nffaces = 0
+  for fc = 1:nfault_faces
+    for lv = 1:2
+      v = fEToV_local[lv, fc]
+      if !haskey(VToFF, v)
+        nffaces += 1
+        VToFF[v]        = nffaces
+        FFToFV[nffaces] = v
+      end
+    end
+  end
+
+  fEToF = zeros(Int64, 2, nfault_faces)
+  for fc = 1:nfault_faces
+    fEToF[1, fc] = VToFF[fEToV_local[1, fc]]
+    fEToF[2, fc] = VToFF[fEToV_local[2, fc]]
+  end
+
+  # --- fFToB: BC for each 1D fault face (vertex) ---
+  # Interior vertices (shared by 2 elements) → BC_LOCKED_INTERFACE
+  # Endpoint vertices (touched by 1 element)  → value from FToB of their fault element,
+  #                                              except the bottommost endpoint gets its
+  #                                              FToB value directly (the mesh encodes it)
+  face_elem_count = zeros(Int64, nffaces)
+  FFToFC          = zeros(Int64, nffaces)   # for boundary faces: which fault element owns it
+  for fc = 1:nfault_faces
+    for lv = 1:2
+      ff = fEToF[lv, fc]
+      face_elem_count[ff] += 1
+      FFToFC[ff] = fc   # last writer wins; boundary faces have exactly one writer
+    end
+  end
+
+  # Detect top/bottom over ALL fault faces (not just boundary ones), so the
+  # Earth's surface vertex is found even if it has connectivity count > 1.
+  bottom_ff = -1
+  top_ff    = -1
+  min_y     =  Inf
+  max_y     = -Inf
+  for ff = 1:nffaces
+    y = fverts[2, FFToFV[ff]]
+    if y < min_y; min_y = y; bottom_ff = ff; end
+    if y > max_y; max_y = y; top_ff    = ff; end
+  end
+
+  # top/bottom assignments take priority over connectivity-based BCs
+  fFToB = zeros(Int64, nffaces)
+  for ff = 1:nffaces
+    if ff == top_ff
+      fFToB[ff] = 1                 # Earth's surface
+    elseif ff == bottom_ff
+      fFToB[ff] = 2                 # bottom of fault
+    elseif face_elem_count[ff] == 1
+      fFToB[ff] = BC_DIRICHLET
+    else
+      fFToB[ff] = BC_LOCKED_INTERFACE
+    end
+  end
+
+  (fverts, fEToV_local, fEToF, fEToDomain, fFToB, Nf, fflip)
+end
 
   export setupfaultstations, savefaultstation, setup_off_faultstations
   export read_params, read_params_structured, plot_slip, plot_fault_time_series, find_ind 
@@ -1488,3 +2189,5 @@ function write_to_file_BP6(pth, ψδ, t, i, zf,flt_loc, flt_loc_indices, station
   export create_text_files, write_to_file
   export read_params_BP1_CT, read_params_BP6, write_to_file_BP6, create_text_files_BP6
   export read_params_planestrain
+  export savedatafields_with_fluids, correct_permeability_and_pressure, read_params_planestrain_fluids
+  export connectivityarrays_1D, faultarrays

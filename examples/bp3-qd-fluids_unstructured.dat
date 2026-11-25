@@ -1,0 +1,70 @@
+# Input parameter file. 
+# Solves the SEAS benchmark problem BP3 (30 degree thrust):
+# https://strike.scec.org/cvws/seas/download/SEAS_BP3.pdf
+# with fluids! 
+#
+# path to store output
+pth =./output/bp3-fluids-unstructured/
+# name of mesh file (make sure this matches psi below):
+meshfile=BP9_2D_90d_v2.inp
+# details of output data:
+# number of grid points in each dimension ON EACH ELEMENT/BLOCK
+# make sure to resolve h* and l_b; should be written as integer.
+Nx = 40
+Nz = 40
+#
+# how many years to simulate
+sim_years = 5000
+#
+# loading rate
+Vp = 1e-9
+#
+# fault slip rate 
+# VL = 1e-9
+# dip angle 
+psi = 90
+# elastcity parameters
+ρ = 2.670
+ν = 0.25
+cs = 3.464
+# initial EFFECTIVE normal stress maximum
+σn = 30
+#
+# rate-and-state friction parameters
+RSamin = 0.015
+RSamax = 0.08
+RSbmin = .025
+RSbmax = 0.04
+RSDc = 0.002
+RSf0 = 0.6
+RSV0 = 1e-6
+RSVinit = 1e-9
+RSH1 = 15
+RSH2 = 18
+# (RSw not needed)
+RSw = 0 
+RSWf = 40
+#
+# SBP interior spatial order of accuracy
+SBPp   = 2
+# fluid parameters (permeability in km^2)
+kmin = 1e-25
+kmax = 1e-21
+# Healing timescale (s)
+T = 1e8
+# Permeability enhancement evolution distance (m)
+L = 1 
+# Stress sensitivity parameter (MPa)
+σ* = 30
+# imposed fluid flux (m/s)
+q0 = 3e-9
+# fluid plus pore compressiblity (GPa^-1)
+β = 1
+# fluid viscosity (GPa s)
+η_f = 1e-13
+# Pore volume fraction 
+n = 0.01
+# fluid density (1e3 kg m^-3)
+ρ_f = 1.000
+# gravity (m/s^2)
+g = 9.8
