@@ -1417,84 +1417,8 @@ function savedatafields_with_fluids(ψδ, t, i, stations, off_stations, fault, s
   Vmax
 end
 
-function initial_perm_pressure(P0, k0, p )
-
-  # # Unpack fault mesh (1D) and SBP degree from p
-  #   (fverts, fEToV, fEToF, fEToDomain, fFToB, fFToE, fFToLF, Nf, fflip) = p.F
-  #   SBPp  = p.SBPp
-  #   fnfaces = size(fFToB, 1)
-  #   # Build fstarts for indexing per-element blocks of kprime/pprime (same block sizes as FToδstarts)
-  #   ffstarts = cumsum([1; Nf .+ 1])
-  #   nfault_faces = length(Nf)
-
-  #   # Build permutation between FToδstarts ordering (used by P, P_old, k, kprime)
-  #   # and ffstarts ordering (used by the 1D diffusion operators).
-  #   # Both have the same block sizes; fflip[fc]=true means the within-element DOF order
-  #   # was reversed by faultarrays (original mesh vertex 1 was deeper than vertex 2).
-  #   # The permutation is self-inverse (reversing is an involution).
-  #   perm = collect(1:δNp)
-  #   for fc = 1:nfault_faces
-  #     if fflip[fc]
-  #       rng = ffstarts[fc]:ffstarts[fc+1]-1
-  #       perm[rng] .= reverse(rng)
-  #     end
-  #   end
-
-  #   pprime = copy(P)
-  #   kprime = copy(k)
-  #   err = 1e6
-  #   iter = [0]
-
-  #   while err > 1e-12 && iter[1] < 1000
-  #     σ_eff = max.(p.σ .- pprime, 0.0)  # clamp: when P > σ, effective stress = 0, k = kstar
-  #     kprime_prev = copy(kprime)
-
-  #     kprime .= p.kmin .+ (kstar .- p.kmin) .* exp.(-σ_eff ./ p.σstar)
-
-  #     # Permute kprime to 1D mesh ordering for the diffusion operator.
-  #     # c(x, e, dom) uses the element-wise mean (invariant to ordering).
-  #     kprime_1D = kprime[perm]
-  #     c_vec = kprime_1D ./ (p.η_f * p.n * p.β)
-  #     c = let cv = c_vec, fst = ffstarts
-  #         (x, e, dom) -> begin
-  #             idx = fst[e]:fst[e+1]-1
-  #             sum(cv[idx]) / length(idx)
-  #         end
-  #     end
-
-  #     (M, b, lop, fstarts) = diffusion_rhs(t, Nf, SBPp, fverts, fEToV, fFToB, fEToF, fFToE, fFToLF, fnfaces, fEToDomain, p, c)
-  #     D        = M[1]   # first-derivative operator
-  #     D2z_c_BC = M[2]   # second-order diffusion operator (SBP-SAT with BCs applied)
-
-  #     pprime_prev = copy(pprime)
-
-  #     # Convert P_old and gravity term to 1D ordering before the linear solve.
-  #     P_old_1D   = P_old[perm]
-  #     kprime_grav_1D = kprime_1D .* p.ρ_f .* p.g ./ (p.n * p.β * p.η_f)   # already in 1D ordering
-
-  #     pprime_1D = (1/Δt * I - D2z_c_BC)\(P_old_1D ./ Δt - D*kprime_grav_1D - b)
-
-      
-  #     # Convert result back to FToδstarts ordering (perm is self-inverse).
-  #     pprime .= pprime_1D[perm]
-
-  
-  #     err_p = norm(pprime .- pprime_prev) / (norm(pprime) + eps())
-  #     err_k = norm(kprime .- kprime_prev) / (norm(kprime) + eps())
-  #     err = max(err_p, err_k)
-  #     iter[1] += 1
-
-  #   end
-
-  #   if iter[1] >= 1000
-  #     @warn "correct_permeability_and_pressure!: max iterations (10000) reached"
-  #   end
-
-    
-  #   P .= pprime
-  #   k  .= kprime
-
-  # end
+function initial_perm_pressure(P0, k0, p)
+ # TODO: FILL ME IN
 
 end
 
